@@ -1,3 +1,4 @@
 #!/bin/sh
-. "".husky/_/husky.sh"
-echo '✅ Husky pre-commit hook is running!'
+. "$(dirname "$0")/_/husky.sh"
+echo "✅ Husky pre-commit hook is running!"
+
