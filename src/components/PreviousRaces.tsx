@@ -40,7 +40,7 @@ const PreviousRaces = () => {
               <img
                 src={race.winner}
                 alt="Winner"
-                className="w-12 h-12 md:w-16 md:h-16 mx-auto rounded-lg bg-white p-1 shadow-md"
+                className="w-12 h-12 md:w-16 md:h-16 mx-auto rounded-lg bg-[#FFB877] p-1 shadow-md"
               />
             </div>
 

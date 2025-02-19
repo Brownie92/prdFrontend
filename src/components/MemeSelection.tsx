@@ -38,7 +38,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
           <img
             src={meme.src}
             alt={meme.name}
-            className="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg bg-white p-1"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-full shadow-lg bg-[#FFB877] p-1"
           />
         </button>
       ))}
