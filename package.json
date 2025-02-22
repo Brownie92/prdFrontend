@@ -17,6 +17,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.0",
     "@tailwindcss/vite": "^4.0.6",
+    "axios": "^1.7.9",
     "buffer": "^6.0.3",
     "esbuild": "^0.25.0",
     "prettier": "^3.5.1",

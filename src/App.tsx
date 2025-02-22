@@ -1,11 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import RacePage from "./pages/RacePage";
+import { WebSocketProvider } from "./context/WebSocketProvider";
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<RacePage />} />
-    </Routes>
+    <WebSocketProvider>
+      <Routes>
+        <Route path="/" element={<RacePage />} />
+      </Routes>
+    </WebSocketProvider>
   );
 };
 

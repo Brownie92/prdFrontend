@@ -1,39 +1,51 @@
-import { useState } from "react";
+import { useState } from "react"; // ✅ Hier was de fout!
 import MemeSelection from "./MemeSelection";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
+import RaceStatus from "./RaceStatus";
+import WinnerDisplay from "./WinnerDisplay";
+import MemeProgress from "./MemeProgress";
+import PickMemeButton from "./ui/PickMemeButton";
+import useRaceData from "../hooks/useRaceData";
 
 const RaceSection = () => {
-  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
   const { connected } = useWallet();
-  const { setVisible } = useWalletModal(); // Wallet selection modal
+  const { setVisible } = useWalletModal();
+  const { race, winner, countdown } = useRaceData();
+  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
-      <div className="flex justify-between text-lg font-semibold mb-3">
-        <span>Round: 1</span>
-        <span>Next round: 00:00:00</span>
-      </div>
+      {winner && winner.name && winner.image ? (
+        <WinnerDisplay winner={winner} />
+      ) : (
+        <>
+          <RaceStatus
+            currentRound={race?.currentRound ?? 0}
+            countdown={countdown}
+          />
 
-      {/* Meme Selection */}
-      <MemeSelection
-        selectedMeme={selectedMeme}
-        setSelectedMeme={setSelectedMeme}
-      />
+          {race && race.currentRound === 1 ? (
+            <MemeSelection
+              selectedMeme={selectedMeme}
+              setSelectedMeme={setSelectedMeme}
+            />
+          ) : (
+            <div className="space-y-2">
+              {race && race.currentRound > 1 && (
+                <MemeProgress memes={race.memes} />
+              )}
+            </div>
+          )}
 
-      {/* Pick Your Meme / Connect Wallet Button */}
-      <button
-        onClick={() => {
-          if (!connected) {
-            setVisible(true); // Open wallet modal if no wallet is connected
-          } else {
-            console.log(`Meme selected: ${selectedMeme}`);
-          }
-        }}
-        className="w-full bg-green-400 text-white font-bold py-3 rounded-lg mt-4 hover:bg-green-400 transition shadow-md"
-      >
-        PICK YOUR MEME!
-      </button>
+          <PickMemeButton
+            selectedMeme={selectedMeme}
+            setSelectedMeme={setSelectedMeme}
+            connected={connected}
+            setVisible={setVisible}
+          />
+        </>
+      )}
     </div>
   );
 };
