@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useWebSocket } from "../context/WebSocketProvider";
 
 const API_RACE_URL = "http://localhost:6001/api/races/current";
@@ -30,36 +30,44 @@ const useRaceData = () => {
   const [race, setRace] = useState<Race | null>(null);
   const [winner, setWinner] = useState<Winner | null>(null);
   const [countdown, setCountdown] = useState<string>("00:00:00");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
   // 🏁 API-call: Race ophalen
-  useEffect(() => {
-    const fetchRaceData = async () => {
-      try {
-        const response = await fetch(API_RACE_URL);
-        if (!response.ok) throw new Error("Race niet gevonden");
-        const data: Race = await response.json();
-        setRace(data);
-        setWinner(null);
-        updateCountdown(data.roundEndTime);
-      } catch (error) {
-        console.error("❌ Fout bij ophalen race:", error);
-        fetchWinnerData();
-      }
-    };
-
-    const fetchWinnerData = async () => {
-      try {
-        const response = await fetch(API_WINNER_URL);
-        if (!response.ok) throw new Error("Geen winnaar gevonden");
-        const data: Winner = await response.json();
-        setWinner(data);
-      } catch (error) {
-        console.error("❌ Fout bij ophalen winnaar:", error);
-      }
-    };
-
-    fetchRaceData();
+  const fetchRaceData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(API_RACE_URL);
+      if (!response.ok) throw new Error("Race niet gevonden");
+      const data: Race = await response.json();
+      setRace(data);
+      setWinner(null);
+      updateCountdown(data.roundEndTime);
+    } catch (error) {
+      console.error("❌ Fout bij ophalen race:", error);
+      setError("Race niet gevonden. Probeer het later opnieuw.");
+      fetchWinnerData();
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const fetchWinnerData = useCallback(async () => {
+    try {
+      const response = await fetch(API_WINNER_URL);
+      if (!response.ok) throw new Error("Geen winnaar gevonden");
+      const data: Winner = await response.json();
+      setWinner(data);
+    } catch (error) {
+      console.error("❌ Fout bij ophalen winnaar:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRaceData();
+  }, [fetchRaceData]);
 
   // 🎧 WebSocket luisteren naar race updates
   useEffect(() => {
@@ -68,11 +76,7 @@ const useRaceData = () => {
     const handleRaceUpdate = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.event === "raceUpdate") {
-          setRace(message.data);
-          setWinner(null);
-          updateCountdown(message.data.roundEndTime);
-        } else if (message.event === "raceCreated") {
+        if (message.event === "raceUpdate" || message.event === "raceCreated") {
           setRace(message.data);
           setWinner(null);
           updateCountdown(message.data.roundEndTime);
@@ -83,7 +87,6 @@ const useRaceData = () => {
     };
 
     socket.addEventListener("message", handleRaceUpdate);
-
     return () => {
       socket.removeEventListener("message", handleRaceUpdate);
     };
@@ -111,7 +114,16 @@ const useRaceData = () => {
     );
   };
 
-  return { race, winner, countdown };
+  return {
+    race,
+    winner,
+    countdown,
+    selectedMeme,
+    setSelectedMeme,
+    loading,
+    error,
+    refreshRaceData: fetchRaceData,
+  };
 };
 
 export default useRaceData;

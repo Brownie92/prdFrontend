@@ -1,4 +1,4 @@
-import { useState } from "react"; // ✅ Hier was de fout!
+import { useState } from "react";
 import MemeSelection from "./MemeSelection";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -9,8 +9,8 @@ import PickMemeButton from "./ui/PickMemeButton";
 import useRaceData from "../hooks/useRaceData";
 
 const RaceSection = () => {
-  const { connected } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { connected } = useWallet(); // ✅ Wallet status ophalen
+  const { setVisible } = useWalletModal(); // ✅ Wallet connect modal
   const { race, winner, countdown } = useRaceData();
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
@@ -38,11 +38,12 @@ const RaceSection = () => {
             </div>
           )}
 
+          {/* ✅ Nu wordt de Wallet Connect correct verwerkt */}
           <PickMemeButton
             selectedMeme={selectedMeme}
             setSelectedMeme={setSelectedMeme}
-            connected={connected}
-            setVisible={setVisible}
+            connected={connected} // ✅ Wallet status doorgeven
+            setVisible={setVisible} // ✅ Wallet modal doorgeven
           />
         </>
       )}
