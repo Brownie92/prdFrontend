@@ -10,6 +10,7 @@ const WS_URL = "ws://localhost:6001"; // ✅ WebSocket backend URL
 
 interface WebSocketContextType {
   socket: WebSocket | null;
+  isConnected: boolean;
   sendMessage: (event: string, data: any) => void;
 }
 
@@ -25,67 +26,65 @@ export const WebSocketProvider = ({
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (socketRef.current) {
-      console.warn(
-        "[WS] ⚠️ WebSocket is al verbonden. Geen nieuwe verbinding nodig."
-      );
-      return;
-    }
-
-    console.log("[WS] 🔌 Verbinding maken met WebSocket...");
-    const ws = new WebSocket(WS_URL);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      console.log("[WS] ✅ WebSocket connected");
-      setIsConnected(true);
-    };
-
-    ws.onmessage = (msg) => {
-      try {
-        const parsedData = JSON.parse(msg.data);
-        if (parsedData.event) {
-          console.log(
-            `[WS] 🔄 Event ontvangen: ${parsedData.event}`,
-            parsedData.data
-          );
-        } else {
-          console.warn(
-            "[WS] ⚠️ Onbekend WebSocket bericht ontvangen:",
-            parsedData
-          );
-        }
-      } catch (error) {
-        console.error(
-          "[WS] ❌ Fout bij verwerken WebSocket bericht: Geen geldige JSON",
-          msg.data
-        );
+    const connectWebSocket = () => {
+      if (socketRef.current) {
+        console.warn("[WS] ⚠️ WebSocket is al verbonden.");
+        return;
       }
-    };
 
-    ws.onclose = (event) => {
-      console.warn(
-        `[WS] ❌ WebSocket verbroken, reden: ${event.reason || "geen reden opgegeven"}`
-      );
-      setIsConnected(false);
-      socketRef.current = null;
+      console.log("[WS] 🔌 Verbinden met WebSocket...");
+      const ws = new WebSocket(WS_URL);
+      socketRef.current = ws;
 
-      if (!reconnectTimeoutRef.current) {
-        console.log("[WS] 🔄 Probeer opnieuw te verbinden over 5 seconden...");
-        reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectTimeoutRef.current = null;
-          if (!socketRef.current) {
-            console.log("[WS] 🔌 Herstellen WebSocket-verbinding...");
-            socketRef.current = new WebSocket(WS_URL);
+      ws.onopen = () => {
+        console.log("[WS] ✅ Verbonden met WebSocket");
+        setIsConnected(true);
+      };
+
+      ws.onmessage = (msg) => {
+        try {
+          const parsedData = JSON.parse(msg.data);
+          if (parsedData.event) {
+            console.log(
+              `[WS] 🔄 Event ontvangen: ${parsedData.event}`,
+              parsedData.data
+            );
+          } else {
+            console.warn("[WS] ⚠️ Onbekend bericht ontvangen:", parsedData);
           }
-        }, 5000);
-      }
+        } catch (error) {
+          console.error("[WS] ❌ Fout bij verwerken bericht:", msg.data);
+        }
+      };
+
+      ws.onclose = (event) => {
+        console.warn(
+          `[WS] ❌ Verbinding verbroken: ${event.reason || "geen reden opgegeven"}`
+        );
+        setIsConnected(false);
+        socketRef.current = null;
+
+        if (!reconnectTimeoutRef.current) {
+          console.log(
+            "[WS] 🔄 Probeer opnieuw te verbinden over 5 seconden..."
+          );
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectTimeoutRef.current = null;
+            if (!socketRef.current) {
+              console.log("[WS] 🔌 Herstellen WebSocket-verbinding...");
+              connectWebSocket();
+            }
+          }, 5000);
+        }
+      };
+
+      ws.onerror = (error) => console.error("[WS] ⚠️ WebSocket fout:", error);
     };
 
-    ws.onerror = (error) => console.error("[WS] ⚠️ WebSocket fout:", error);
+    connectWebSocket();
 
     return () => {
-      console.log("[WS] 🔌 WebSocket wordt gesloten...");
+      console.log("[WS] 🔌 WebSocket afsluiten...");
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
@@ -101,14 +100,14 @@ export const WebSocketProvider = ({
       socketRef.current.send(JSON.stringify({ event, data }));
     } else {
       console.warn(
-        "[WS] ⚠️ Kan geen bericht verzenden: WebSocket is niet verbonden"
+        "[WS] ⚠️ Kan geen bericht verzenden: WebSocket is niet verbonden."
       );
     }
   };
 
   return (
     <WebSocketContext.Provider
-      value={{ socket: socketRef.current, sendMessage }}
+      value={{ socket: socketRef.current, isConnected, sendMessage }}
     >
       {children}
     </WebSocketContext.Provider>
@@ -119,7 +118,7 @@ export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
   if (!context) {
     throw new Error(
-      "useWebSocket moet binnen WebSocketProvider gebruikt worden"
+      "useWebSocket moet binnen WebSocketProvider gebruikt worden."
     );
   }
   return context;

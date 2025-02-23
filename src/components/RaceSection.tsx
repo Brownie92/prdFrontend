@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MemeSelection from "./MemeSelection";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -9,10 +9,14 @@ import PickMemeButton from "./ui/PickMemeButton";
 import useRaceData from "../hooks/useRaceData";
 
 const RaceSection = () => {
-  const { connected } = useWallet(); // ✅ Wallet status ophalen
-  const { setVisible } = useWalletModal(); // ✅ Wallet connect modal
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const { race, winner, countdown } = useRaceData();
+
+  // ✅ Zorg ervoor dat selectedMeme correct wordt bijgehouden
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
+
+  const memoizedRace = useMemo(() => race, [race]); // 🔥 Voorkomt overbodige renders
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
@@ -21,29 +25,27 @@ const RaceSection = () => {
       ) : (
         <>
           <RaceStatus
-            currentRound={race?.currentRound ?? 0}
+            currentRound={memoizedRace?.currentRound ?? 0}
             countdown={countdown}
           />
-
-          {race && race.currentRound === 1 ? (
+          {memoizedRace?.currentRound === 1 ? (
+            // ✅ Fix: Props correct doorgegeven aan MemeSelection
             <MemeSelection
               selectedMeme={selectedMeme}
               setSelectedMeme={setSelectedMeme}
             />
           ) : (
             <div className="space-y-2">
-              {race && race.currentRound > 1 && (
-                <MemeProgress memes={race.memes} />
+              {memoizedRace && memoizedRace.currentRound > 1 && (
+                <MemeProgress memes={memoizedRace.memes} />
               )}
             </div>
           )}
-
-          {/* ✅ Nu wordt de Wallet Connect correct verwerkt */}
           <PickMemeButton
             selectedMeme={selectedMeme}
             setSelectedMeme={setSelectedMeme}
-            connected={connected} // ✅ Wallet status doorgeven
-            setVisible={setVisible} // ✅ Wallet modal doorgeven
+            connected={connected}
+            setVisible={setVisible}
           />
         </>
       )}
