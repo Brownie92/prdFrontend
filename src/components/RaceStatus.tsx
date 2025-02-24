@@ -8,8 +8,8 @@ interface RaceStatusProps {
 const RaceStatus: React.FC<RaceStatusProps> = ({ currentRound, countdown }) => {
   return (
     <div className="flex justify-between text-lg font-semibold mb-3">
-      <span>Round: {currentRound !== null ? currentRound : "Laden..."}</span>
-      <span>Next round: {countdown}</span>
+      <span>Round: {currentRound !== null ? currentRound : "Loading..."}</span>
+      <span>Next round in: {countdown || "Calculating..."}</span>
     </div>
   );
 };

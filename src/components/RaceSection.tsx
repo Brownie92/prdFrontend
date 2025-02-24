@@ -12,15 +12,14 @@ const RaceSection = () => {
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { race, winner, countdown } = useRaceData();
-
-  // ✅ Zorg ervoor dat selectedMeme correct wordt bijgehouden
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
-  const memoizedRace = useMemo(() => race, [race]); // 🔥 Voorkomt overbodige renders
+  // ✅ Ensure memoization prevents unnecessary re-renders
+  const memoizedRace = useMemo(() => race ?? null, [race]);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
-      {winner && winner.name && winner.image ? (
+      {winner ? (
         <WinnerDisplay winner={winner} />
       ) : (
         <>
@@ -28,19 +27,19 @@ const RaceSection = () => {
             currentRound={memoizedRace?.currentRound ?? 0}
             countdown={countdown}
           />
-          {memoizedRace?.currentRound === 1 ? (
-            // ✅ Fix: Props correct doorgegeven aan MemeSelection
+
+          {memoizedRace && memoizedRace.currentRound === 1 ? (
             <MemeSelection
               selectedMeme={selectedMeme}
               setSelectedMeme={setSelectedMeme}
             />
           ) : (
-            <div className="space-y-2">
-              {memoizedRace && memoizedRace.currentRound > 1 && (
-                <MemeProgress memes={memoizedRace.memes} />
-              )}
-            </div>
+            memoizedRace &&
+            memoizedRace.currentRound > 1 && (
+              <MemeProgress memes={memoizedRace.memes ?? []} />
+            )
           )}
+
           <PickMemeButton
             selectedMeme={selectedMeme}
             setSelectedMeme={setSelectedMeme}

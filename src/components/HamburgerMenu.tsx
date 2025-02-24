@@ -14,15 +14,16 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ isOpen, onClose }) => {
           : "opacity-0 scale-95 pointer-events-none"
       }`}
     >
-      {/* Close button with extra spacing and improved visibility */}
+      {/* Close button */}
       <button
         onClick={onClose}
         className="text-white text-2xl absolute top-4 right-5 hover:text-gray-200 transition"
+        aria-label="Close menu"
       >
         ✕
       </button>
 
-      {/* Wallet button properly positioned with additional spacing */}
+      {/* Wallet Connect Button */}
       <div className="mt-8">
         <WalletMultiButton className="bg-[#74FF9B] hover:bg-[#5CDB7D] text-black font-bold py-3 px-6 rounded-lg shadow-md transition" />
       </div>

@@ -3,8 +3,14 @@ import pudgy from "../assets/pudgy.png";
 import popcat from "../assets/popcat.png";
 import bonk from "../assets/bonk.png";
 
-// Simulatie van 10 races voor scrollbare lijst
-const previousRaces = [
+// ✅ TypeScript type voor race objecten
+interface Race {
+  date: string;
+  winner: string;
+}
+
+// ✅ Simulatie van eerdere races (kan later uit API komen)
+const previousRaces: Race[] = [
   { date: "13-2-2025", winner: pudgy },
   { date: "12-2-2025", winner: popcat },
   { date: "11-2-2025", winner: bonk },
@@ -18,14 +24,16 @@ const previousRaces = [
 ];
 
 const PreviousRaces = () => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null); // ✅ TypeScript safety
 
   return (
     <div className="mt-8">
-      <h2 className="text-lg font-bold mb-2">PREVIOUS RACES</h2>
+      <h2 className="text-lg font-bold mb-2 text-white">Previous Races</h2>
+
       <div
         ref={scrollRef}
         className="flex space-x-3 mt-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth"
+        aria-label="Scroll through previous race winners"
       >
         {previousRaces.map((race, index) => (
           <div
@@ -39,14 +47,14 @@ const PreviousRaces = () => {
             <div className="flex justify-center mt-2">
               <img
                 src={race.winner}
-                alt="Winner"
+                alt={`Winner of race on ${race.date}`}
                 className="w-12 h-12 md:w-16 md:h-16 mx-auto rounded-lg bg-[#FFB877] p-1 shadow-md"
               />
             </div>
 
             {/* ✅ Race datum staat nu ONDER de afbeelding */}
             <p className="text-xs md:text-sm font-semibold text-white mt-2">
-              Race: {race.date}
+              {race.date}
             </p>
           </div>
         ))}

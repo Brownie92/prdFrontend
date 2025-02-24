@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import HamburgerMenu from "./HamburgerMenu";
 
-const Header = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
+const Header: React.FC = () => {
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+
+  // Toggle the hamburger menu state
+  const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);
 
   return (
-    <div className="flex justify-between items-center relative">
-      <h1 className="text-3xl font-bold">THE MEME RACE</h1>
+    <header className="flex justify-between items-center relative p-4">
+      <h1 className="text-3xl font-bold text-white">THE MEME RACE</h1>
 
-      {/* Hamburger Menu Button */}
       <button
-        onClick={() => setMenuOpen(!menuOpen)}
-        className="text-white text-2xl"
+        onClick={toggleMenu}
+        aria-label="Toggle menu"
+        className="text-white text-3xl focus:outline-none transition-transform transform hover:scale-110"
       >
         ☰
       </button>
 
-      {/* The menu is rendered here */}
       <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-    </div>
+    </header>
   );
 };
 

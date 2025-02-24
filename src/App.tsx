@@ -1,15 +1,20 @@
 import { Routes, Route } from "react-router-dom";
-import RacePage from "./pages/RacePage";
+import { lazy, Suspense } from "react";
 import { WebSocketProvider } from "./context/WebSocketProvider";
-import RaceTest from "./components/RaceTest";
+
+// Lazy loading voor betere performance
+const RacePage = lazy(() => import("./pages/RacePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App = () => {
   return (
     <WebSocketProvider>
-      <Routes>
-        <Route path="/" element={<RacePage />} />
-        <Route path="/test" element={<RaceTest />} />
-      </Routes>
+      <Suspense fallback={<div className="text-center p-6">Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<RacePage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </WebSocketProvider>
   );
 };
