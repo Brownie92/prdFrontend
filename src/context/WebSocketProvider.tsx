@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useCallback,
 } from "react";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:6001";
@@ -24,7 +25,16 @@ export const WebSocketProvider = ({
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [eventListeners, setEventListeners] = useState<((data: any) => void)[]>(
+    []
+  );
 
+  // ✅ Callback om event listeners toe te voegen
+  const registerEventListener = useCallback((listener: (data: any) => void) => {
+    setEventListeners((prev) => [...prev, listener]);
+  }, []);
+
+  // ✅ WebSocket connectie met event listener registratie
   useEffect(() => {
     const connectWebSocket = () => {
       if (socketRef.current) {
@@ -49,6 +59,9 @@ export const WebSocketProvider = ({
               `[WS] Event received: ${parsedData.event}`,
               parsedData.data
             );
+
+            // ✅ Stuur het event naar alle geregistreerde listeners
+            eventListeners.forEach((listener) => listener(parsedData));
           } else {
             console.warn("[WS] Unknown message received:", parsedData);
           }
@@ -91,7 +104,7 @@ export const WebSocketProvider = ({
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, []);
+  }, [eventListeners]); // ✅ Herverbind event listeners na reconnect
 
   const sendMessage = (event: string, data: any) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {

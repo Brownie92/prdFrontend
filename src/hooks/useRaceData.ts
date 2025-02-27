@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import useWebSocket from "react-use-websocket";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const API_RACE_URL = `${import.meta.env.VITE_API_BASE_URL}/races/current`;
 const API_WINNER_URL = `${import.meta.env.VITE_API_BASE_URL}/winners/latest`;
@@ -11,11 +11,14 @@ interface Meme {
   name: string;
   url: string;
   progress: number;
+  boostAmount?: number;
+  totalSol?: number;
 }
 
 interface Race {
+  raceId: string;
   currentRound: number;
-  roundEndTime: string;
+  roundEndTime?: string;
   memes: Meme[];
 }
 
@@ -34,19 +37,39 @@ interface WebSocketMessage {
 const useRaceData = () => {
   const [race, setRace] = useState<Race | null>(null);
   const [winner, setWinner] = useState<Winner | null>(null);
-  const [countdown, setCountdown] = useState<string>("00:00:00");
+  const [countdown, setCountdown] = useState<string>("00:00");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
-  const raceRef = useRef<Race | null>(null); // Keeps the latest race state
+  const raceRef = useRef<Race | null>(null);
 
-  // WebSocket Hook
-  const { sendJsonMessage, lastJsonMessage } = useWebSocket(WS_URL, {
-    onOpen: () => console.log("[WS] WebSocket Connected"),
-    shouldReconnect: () => true, // Auto-reconnect
+  // ✅ WebSocket Hook met reconnect & event handling
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
+    onOpen: () => console.log("[WS] ✅ WebSocket Connected"),
+    shouldReconnect: () => true,
   });
 
-  // Fetch current race data
+  // ✅ Functie om WebSocket-status om te zetten naar leesbare tekst
+  const getWebSocketStatus = () => {
+    switch (readyState) {
+      case ReadyState.CONNECTING:
+        return "Connecting...";
+      case ReadyState.OPEN:
+        return "Connected ✅";
+      case ReadyState.CLOSING:
+        return "Closing...";
+      case ReadyState.CLOSED:
+        return "Disconnected ❌";
+      default:
+        return "Unknown";
+    }
+  };
+
+  // ✅ Log de WebSocket-status updates
+  useEffect(() => {
+    console.log(`[WS] Current WebSocket State: ${getWebSocketStatus()}`);
+  }, [readyState]);
+
+  // ✅ Race data ophalen via API
   const fetchRaceData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -55,15 +78,25 @@ const useRaceData = () => {
       if (!response.ok) throw new Error("Race not found");
       const data: Race = await response.json();
 
-      if (raceRef.current?.currentRound !== data.currentRound) {
-        setRace(data);
-        raceRef.current = data;
+      if (!data.raceId) {
+        console.error("[ERROR] ❌ Race received without raceId!", data);
+        return;
       }
+
+      setRace({
+        ...data,
+        memes: data.memes.map(meme => ({
+          ...meme,
+          boostAmount: meme.boostAmount ?? 0,
+          totalSol: meme.totalSol ?? 0
+        }))
+      });
+      raceRef.current = data;
 
       setWinner(null);
       updateCountdown(data.roundEndTime);
     } catch (error) {
-      console.error("[API] Error fetching race:", error);
+      console.error("[API] ❌ Error fetching race:", error);
       setError("Race not found. Please try again later.");
       fetchWinnerData();
     } finally {
@@ -71,7 +104,7 @@ const useRaceData = () => {
     }
   }, []);
 
-  // Fetch last winner if no active race
+  // ✅ Winnaar ophalen als er geen actieve race is
   const fetchWinnerData = useCallback(async () => {
     try {
       const response = await fetch(API_WINNER_URL);
@@ -79,49 +112,86 @@ const useRaceData = () => {
       const data: Winner = await response.json();
       setWinner(data);
     } catch (error) {
-      console.error("[API] Error fetching winner:", error);
+      console.error("[API] ❌ Error fetching winner:", error);
     }
   }, []);
 
-  // Fetch race on page load
+  // ✅ Fetch race bij eerste render
   useEffect(() => {
     fetchRaceData();
   }, [fetchRaceData]);
 
-  // Handle WebSocket updates
+  // ✅ **WebSocket updates correct verwerken**
   useEffect(() => {
     if (!lastJsonMessage) return;
+  
     const message = lastJsonMessage as WebSocketMessage;
-
-    if (message.event === "raceUpdate" || message.event === "raceCreated") {
-      if (!message.data || typeof message.data !== "object") {
-        console.error("[WS] Invalid race update received:", message.data);
-        return;
-      }
-
-      if (raceRef.current?.currentRound !== message.data.currentRound) {
-        setRace(message.data);
-        raceRef.current = message.data;
-      }
-
-      updateCountdown(message.data.roundEndTime);
-      setWinner(null);
+    
+    if (!message.data || !message.data.raceId) {
+      console.error("[WS] ❌ Race update received without raceId!", message.data);
+      return;
     }
+  
+    console.log("🔄 [WS] Updating race data:", message.data);
+  
+    setRace(prevRace => {
+      if (!prevRace) return null;
+  
+      // ✅ Boost data verwerken in bestaande memes
+      const updatedMemes = prevRace.memes.map(meme => {
+        const boostData = message.data.boosts?.find((b: any) => b._id === meme.memeId);
+        return {
+          ...meme,
+          totalSol: boostData ? boostData.totalSol : meme.totalSol ?? 0 // ✅ Correcte update
+        };
+      });
+  
+      return {
+        raceId: prevRace.raceId ?? message.data.raceId ?? "", // ✅ Fix voor TypeScript error
+        currentRound: message.data.currentRound ?? prevRace.currentRound,
+        roundEndTime: message.data.roundEndTime ?? prevRace.roundEndTime,
+        memes: updatedMemes // ✅ Geüpdatete memes met boost data
+      };
+    });
+  
+    raceRef.current = {
+      raceId: raceRef.current?.raceId ?? message.data.raceId ?? "", // ✅ Fix voor undefined error
+      currentRound: message.data.currentRound ?? raceRef.current?.currentRound,
+      roundEndTime: message.data.roundEndTime ?? raceRef.current?.roundEndTime,
+      memes: raceRef.current?.memes.map(meme => {
+        const boostData = message.data.boosts?.find((b: any) => b._id === meme.memeId);
+        return {
+          ...meme,
+          totalSol: boostData ? boostData.totalSol : meme.totalSol ?? 0
+        };
+      }) ?? []
+    };
+  
+    if (message.data.roundEndTime) {
+      updateCountdown(message.data.roundEndTime);
+    }
+  
+    setWinner(null);
   }, [lastJsonMessage]);
 
-  // Countdown timer
+  // ✅ **Automatische countdown update**
   useEffect(() => {
     if (!race?.roundEndTime) return;
 
-    const updateTimer = () => updateCountdown(race.roundEndTime);
-    updateTimer(); // Run immediately
+    const updateTimer = () => updateCountdown(race.roundEndTime!);
+    updateTimer();
 
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [race?.roundEndTime]);
 
-  // Update countdown display
-  const updateCountdown = (endTime: string) => {
+  // ✅ **Countdown berekenen**
+  const updateCountdown = (endTime?: string) => {
+    if (!endTime) {
+      setCountdown("00:00");
+      return;
+    }
+
     const now = Date.now();
     const roundEnd = new Date(endTime).getTime();
     const timeDiff = Math.max(0, roundEnd - now);
@@ -134,12 +204,12 @@ const useRaceData = () => {
     race,
     winner,
     countdown,
-    selectedMeme,
-    setSelectedMeme,
     loading,
     error,
     refreshRaceData: fetchRaceData,
     sendJsonMessage,
+    readyState, // ✅ Teruggegeven voor gebruik in componenten
+    webSocketStatus: getWebSocketStatus() // ✅ Leesbare WebSocket-status
   };
 };
 

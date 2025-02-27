@@ -1,6 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import MemeSelection from "./MemeSelection";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
 import RaceStatus from "./RaceStatus";
 import WinnerDisplay from "./WinnerDisplay";
@@ -10,12 +9,9 @@ import useRaceData from "../hooks/useRaceData";
 
 const RaceSection = () => {
   const { connected } = useWallet();
-  const { setVisible } = useWalletModal();
-  const { race, winner, countdown } = useRaceData();
-  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
+  const { race, winner, countdown } = useRaceData(); // ✅ Haalt race data op
 
-  // ✅ Ensure memoization prevents unnecessary re-renders
-  const memoizedRace = useMemo(() => race ?? null, [race]);
+  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
@@ -23,20 +19,30 @@ const RaceSection = () => {
         <WinnerDisplay winner={winner} />
       ) : (
         <>
+          {/* ✅ Voorkom undefined errors met veilige toegang */}
           <RaceStatus
-            currentRound={memoizedRace?.currentRound ?? 0}
+            currentRound={race?.currentRound ?? 0} // ✅ Valt terug op 0 als `undefined`
             countdown={countdown}
           />
 
-          {memoizedRace && memoizedRace.currentRound === 1 ? (
+          {/* ✅ Voorkomt TypeScript fouten bij `race` */}
+          {race?.currentRound === 1 ? (
             <MemeSelection
               selectedMeme={selectedMeme}
               setSelectedMeme={setSelectedMeme}
             />
           ) : (
-            memoizedRace &&
-            memoizedRace.currentRound > 1 && (
-              <MemeProgress memes={memoizedRace.memes ?? []} />
+            race?.currentRound &&
+            race.currentRound > 1 && (
+              <MemeProgress
+                memes={
+                  race.memes?.map((meme) => ({
+                    ...meme,
+                    boostAmount: meme.boostAmount ?? 0, // ✅ Zorgt ervoor dat het veld altijd aanwezig is
+                    totalSol: meme.totalSol ?? 0, // ✅ Zorgt ervoor dat het veld altijd aanwezig is
+                  })) ?? []
+                }
+              />
             )
           )}
 
@@ -44,7 +50,7 @@ const RaceSection = () => {
             selectedMeme={selectedMeme}
             setSelectedMeme={setSelectedMeme}
             connected={connected}
-            setVisible={setVisible}
+            raceId={race?.raceId ?? ""} // ✅ Fallback naar lege string
           />
         </>
       )}
