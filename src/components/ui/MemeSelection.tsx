@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
-import { useWebSocket } from "../context/WebSocketProvider";
+import { useWebSocket } from "../../context/WebSocketProvider";
 
-// ✅ TypeScript interface voor memes
 interface Meme {
   memeId: string;
   url: string;
   name: string;
 }
 
-// ✅ Props voor MemeSelection component
 interface MemeSelectionProps {
   selectedMeme: string | null;
   setSelectedMeme: (id: string | null) => void;
 }
 
-// ✅ API URL uit .env bestand
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/races/current`;
 
 const MemeSelection: React.FC<MemeSelectionProps> = ({
@@ -24,19 +21,26 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
   const { socket } = useWebSocket();
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 📡 **Memes ophalen bij component load**
   useEffect(() => {
     const fetchMemes = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error("Race niet gevonden");
         const data = await response.json();
 
-        setMemes(data.memes || []); // ✅ Voorkom undefined fout
+        if (!data.memes || !Array.isArray(data.memes)) {
+          throw new Error("Ongeldige memes data ontvangen.");
+        }
+
+        setMemes(data.memes);
         console.log("[API] ✅ Memes geladen:", data.memes);
       } catch (error) {
         console.error("[API] ❌ Fout bij ophalen memes:", error);
+        setError("Fout bij laden van memes. Probeer opnieuw.");
       } finally {
         setLoading(false);
       }
@@ -45,15 +49,17 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
     fetchMemes();
   }, []);
 
-  // 🎧 **Luister naar WebSocket race updates**
   useEffect(() => {
     if (!socket) return;
 
     const handleRaceUpdate = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.event === "raceUpdate") {
-          setMemes(message.data.memes || []);
+        if (
+          message.event === "raceUpdate" &&
+          Array.isArray(message.data.memes)
+        ) {
+          setMemes(message.data.memes);
           console.log("[WS] 🔄 Meme lijst geüpdatet via WebSocket.");
         }
       } catch (error) {
@@ -72,6 +78,10 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
 
   if (loading) {
     return <p className="text-center text-white">⏳ Memes laden...</p>;
+  }
+
+  if (error) {
+    return <p className="text-center text-red-500">{error}</p>;
   }
 
   return (

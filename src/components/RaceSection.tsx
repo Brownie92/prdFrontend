@@ -1,57 +1,81 @@
-import { useState } from "react";
-import MemeSelection from "./MemeSelection";
+import { useState, useEffect } from "react";
+import MemeSelection from "./ui/MemeSelection";
 import { useWallet } from "@solana/wallet-adapter-react";
 import RaceStatus from "./RaceStatus";
 import WinnerDisplay from "./WinnerDisplay";
-import MemeProgress from "./MemeProgress";
+import MemeProgress from "./ui/MemeProgress";
 import PickMemeButton from "./ui/PickMemeButton";
 import useRaceData from "../hooks/useRaceData";
 
 const RaceSection = () => {
   const { connected } = useWallet();
-  const { race, winner, countdown } = useRaceData(); // ✅ Haalt race data op
-
+  const { race, winner, countdown, refreshWinnerData, refreshRaceData } =
+    useRaceData();
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
+  const [showWinner, setShowWinner] = useState<boolean>(true);
+  const [initialized, setInitialized] = useState<boolean>(false);
+
+  // ✅ **Race data ophalen bij eerste render (alleen indien nodig)**
+  useEffect(() => {
+    if (!initialized) {
+      console.log("[INFO] Initializing race data...");
+      refreshRaceData();
+      setInitialized(true);
+    }
+  }, [initialized, refreshRaceData]);
+
+  // ✅ **Schakel tussen winnaar en race zonder extra API-calls**
+  useEffect(() => {
+    if (race && race.currentRound > 0) {
+      console.log("[INFO] Active race found, switching to race view.");
+      setShowWinner(false);
+    } else if (!race || race.currentRound === 0) {
+      console.log("[INFO] No active race, showing latest winner.");
+      setShowWinner(true);
+      refreshWinnerData(); // ✅ Laatste winnaar ophalen
+    }
+  }, [race?.raceId, race?.currentRound]);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
-      {winner ? (
+      {showWinner && winner ? (
         <WinnerDisplay winner={winner} />
       ) : (
         <>
-          {/* ✅ Voorkom undefined errors met veilige toegang */}
           <RaceStatus
-            currentRound={race?.currentRound ?? 0} // ✅ Valt terug op 0 als `undefined`
+            currentRound={race?.currentRound ?? 0}
             countdown={countdown}
           />
 
-          {/* ✅ Voorkomt TypeScript fouten bij `race` */}
-          {race?.currentRound === 1 ? (
+          {/* ✅ Fix voor ronde 1 */}
+          {race?.currentRound === 1 && (
             <MemeSelection
               selectedMeme={selectedMeme}
               setSelectedMeme={setSelectedMeme}
             />
-          ) : (
-            race?.currentRound &&
-            race.currentRound > 1 && (
-              <MemeProgress
-                memes={
-                  race.memes?.map((meme) => ({
-                    ...meme,
-                    boostAmount: meme.boostAmount ?? 0, // ✅ Zorgt ervoor dat het veld altijd aanwezig is
-                    totalSol: meme.totalSol ?? 0, // ✅ Zorgt ervoor dat het veld altijd aanwezig is
-                  })) ?? []
-                }
-              />
-            )
           )}
 
-          <PickMemeButton
-            selectedMeme={selectedMeme}
-            setSelectedMeme={setSelectedMeme}
-            connected={connected}
-            raceId={race?.raceId ?? ""} // ✅ Fallback naar lege string
-          />
+          {/* ✅ Fix voor ronde 2-6 */}
+          {race?.currentRound &&
+            race.currentRound > 1 &&
+            race.memes?.length > 0 && (
+              <MemeProgress
+                memes={race.memes.map((meme) => ({
+                  ...meme,
+                  boostAmount: meme.boostAmount ?? 0,
+                }))}
+              />
+            )}
+
+          {/* ✅ Pick Meme Button (alleen zichtbaar in ronde 1) */}
+          {race?.currentRound === 1 && (
+            <PickMemeButton
+              selectedMeme={selectedMeme}
+              setSelectedMeme={setSelectedMeme}
+              connected={connected}
+              raceId={race?.raceId ?? ""}
+            />
+          )}
         </>
       )}
     </div>
