@@ -24,17 +24,21 @@ const RaceSection = () => {
     }
   }, [initialized, refreshRaceData]);
 
-  // ✅ **Schakel tussen winnaar en race zonder extra API-calls**
+  // ✅ **Automatische UI-overgang tussen race en winnaar**
   useEffect(() => {
-    if (race && race.currentRound > 0) {
-      console.log("[INFO] Active race found, switching to race view.");
-      setShowWinner(false);
-    } else if (!race || race.currentRound === 0) {
-      console.log("[INFO] No active race, showing latest winner.");
+    if (race?.status === "closed") {
+      console.log("[INFO] 🏁 Race closed. Fetching latest winner...");
       setShowWinner(true);
-      refreshWinnerData(); // ✅ Laatste winnaar ophalen
+      refreshWinnerData();
+    } else if (race?.currentRound && race.currentRound > 0) {
+      console.log("[INFO] 🚀 Active race detected. Showing race view.");
+      setShowWinner(false);
+    } else {
+      console.log("[INFO] ❌ No active race. Fetching latest winner.");
+      setShowWinner(true);
+      refreshWinnerData();
     }
-  }, [race?.raceId, race?.currentRound]);
+  }, [race?.status]); // ✅ Alleen renderen als de race-status wijzigt
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
@@ -47,7 +51,7 @@ const RaceSection = () => {
             countdown={countdown}
           />
 
-          {/* ✅ Fix voor ronde 1 */}
+          {/* ✅ Ronde 1: Meme Selection */}
           {race?.currentRound === 1 && (
             <MemeSelection
               selectedMeme={selectedMeme}
@@ -55,7 +59,7 @@ const RaceSection = () => {
             />
           )}
 
-          {/* ✅ Fix voor ronde 2-6 */}
+          {/* ✅ Ronde 2-6: Progressie tonen */}
           {race?.currentRound &&
             race.currentRound > 1 &&
             race.memes?.length > 0 && (
@@ -67,7 +71,7 @@ const RaceSection = () => {
               />
             )}
 
-          {/* ✅ Pick Meme Button (alleen zichtbaar in ronde 1) */}
+          {/* ✅ Meme Kiezen Knop (alleen zichtbaar in ronde 1) */}
           {race?.currentRound === 1 && (
             <PickMemeButton
               selectedMeme={selectedMeme}

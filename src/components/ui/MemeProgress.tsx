@@ -27,20 +27,13 @@ const MemeProgress: React.FC<MemeProgressProps> = ({ memes }) => {
     boostAmount: typeof meme.boostAmount === "number" ? meme.boostAmount : 0,
   }));
 
-  console.log("[DEBUG] Incoming memes:", memes);
-  console.log("[DEBUG] Validated memes:", validatedMemes);
-
   // ✅ Sorteer op boostAmount per ronde
   const sortedByBoost = [...validatedMemes].sort(
     (a, b) => (b.boostAmount ?? 0) - (a.boostAmount ?? 0)
   );
 
-  console.log("[DEBUG] Sorted by Boost:", sortedByBoost);
-
   // ✅ Alleen top 3 tonen als er daadwerkelijk boosts zijn geweest
   const topBoosted = sortedByBoost.slice(0, 3).filter((m) => m.boostAmount > 0);
-
-  console.log("[DEBUG] Top Boosted Memes:", topBoosted);
 
   const rankingIcons: { [key: number]: string } = {
     0: "🥇",

@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
-import useRaceAPI from "./useRaceAPI"; // ✅ API calls
-import useRaceWebSocket from "./useRaceWebSocket"; // ✅ WebSocket updates
+import useRaceAPI from "./useRaceAPI";
+import useRaceWebSocket from "./useRaceWebSocket";
+import { Race } from "./useRaceWebSocket"; // ✅ Zorg dat Race correct wordt geïmporteerd
 
 const useRaceData = () => {
-  // ✅ Haal race-data op via API
   const {
     race: apiRace,
+    vault: apiVault, // ✅ Voeg Vault toe uit API
     fetchRaceData,
-    fetchWinnerData, // ✅ Haal laatste winnaar op
+    fetchWinnerData,
+    fetchVaultData, // ✅ Vault ophalen indien nodig
     winner,
     loading,
     error,
   } = useRaceAPI();
 
-  // ✅ Gebruik WebSocket met de API-race als initiële waarde
   const {
     race: wsRace,
+    vault: wsVault, // ✅ Voeg Vault toe uit WebSocket
     sendJsonMessage,
     readyState,
     webSocketStatus,
@@ -23,27 +25,42 @@ const useRaceData = () => {
 
   const [countdown, setCountdown] = useState<string>("00:00");
 
-  // ✅ Gebruik WebSocket-data als prioriteit, anders API-data
-  const race = wsRace ?? apiRace;
+  // ✅ Gebruik WebSocket data als die er is, anders API-data
+  const race: Race | null = wsRace ?? apiRace;
+  const vault = wsVault ?? apiVault;
 
-// ✅ **Laatste winnaar ophalen als er geen actieve race is**
-useEffect(() => {
-  if (!race || race.currentRound === 0 || !race.currentRound) {
-    console.log("[INFO] No active race found, fetching latest winner...");
-    fetchWinnerData(); // ✅ Alleen laatste winnaar ophalen als er echt geen race is
-  } else {
-    console.log("[INFO] Active race detected, skipping winner fetch.");
-  }
-}, [race?.raceId, race?.currentRound]); // ✅ Nu triggert het ook op `currentRound`
+  // ✅ Debug logs voor race en vault updates
+  useEffect(() => {
+    console.log("[DEBUG] 🏁 Current Race:", race);
+    console.log("[DEBUG] 💰 Current Vault:", vault);
+  }, [race, vault]);
 
-  // ✅ **UI correct updaten naar ronde 1**
+  // ✅ **Check of er een actieve race is en haal zo nodig winnaar op**
+  useEffect(() => {
+    if (!race || race.status === "closed") {
+      console.log("[INFO] 🏁 No active race or race closed, fetching latest winner...");
+      fetchWinnerData();
+    } else {
+      console.log("[INFO] 🚀 Active race detected, skipping winner fetch.");
+    }
+  }, [race?.status, race?.raceId, race?.currentRound]);
+
+  // ✅ **Vault ophalen bij nieuwe race**
+  useEffect(() => {
+    if (race?.raceId) {
+      console.log("[INFO] 💰 Fetching vault for race:", race.raceId);
+      fetchVaultData(race.raceId);
+    }
+  }, [race?.raceId]);
+
+  // ✅ **Update UI als een nieuwe race start**
   useEffect(() => {
     if (race?.currentRound === 1) {
-      console.log("[INFO] New race detected! Updating UI to round 1.");
+      console.log("[INFO] 🎉 New race detected! Updating UI to round 1.");
     }
   }, [race?.currentRound]);
 
-  // ✅ **Automatische countdown update**
+  // ✅ **Countdown timer voor de ronde**
   useEffect(() => {
     if (!race?.roundEndTime) return;
 
@@ -63,13 +80,15 @@ useEffect(() => {
 
   return {
     race,
+    vault, // ✅ Vault nu beschikbaar in return-object
     winner,
     countdown,
     loading,
     error,
     refreshRaceData: fetchRaceData,
     refreshWinnerData: fetchWinnerData,
-    sendJsonMessage, // ✅ WebSocket berichten sturen
+    refreshVaultData: fetchVaultData, // ✅ Mogelijkheid om handmatig Vault te refreshen
+    sendJsonMessage,
     readyState,
     webSocketStatus,
   };

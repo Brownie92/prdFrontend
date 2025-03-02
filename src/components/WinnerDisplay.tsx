@@ -1,10 +1,12 @@
 import React from "react";
 import SolVault from "./SolVault";
 
-interface Winner {
-  memeUrl: string;
-  progress: number;
-  createdAt: string;
+interface WinnerProps {
+  winner: {
+    memeUrl: string;
+    progress: number;
+    createdAt: string;
+  };
 }
 
 const WinnerDisplay: React.FC<WinnerProps> = ({ winner }) => {
@@ -25,14 +27,12 @@ const WinnerDisplay: React.FC<WinnerProps> = ({ winner }) => {
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg text-center">
       <h2 className="text-2xl font-bold text-white">Most Recent Winner</h2>
 
-      {/* Winnaar afbeelding */}
       <img
         src={winner.memeUrl}
         alt="Winning Meme"
         className="w-32 h-32 mx-auto rounded-full mt-4 border-4 border-white shadow-lg"
       />
 
-      {/* Winnaar details */}
       <p className="text-lg text-white mt-2">
         Progress: <span className="font-semibold">{winner.progress}</span>{" "}
         points
@@ -41,8 +41,8 @@ const WinnerDisplay: React.FC<WinnerProps> = ({ winner }) => {
         Won on: {new Date(winner.createdAt).toLocaleDateString()}
       </p>
 
-      {/* Placeholder voor toekomstige statistieken */}
-      <SolVault totalVault={4.1} totalWinners={10} />
+      {/* ✅ `SolVault` heeft geen props nodig, haalt zelf de juiste waarde op */}
+      <SolVault />
     </div>
   );
 };
