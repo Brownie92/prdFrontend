@@ -91,6 +91,28 @@ const useRaceAPI = () => {
     }
   }, []);
 
+    // ✅ **Meest recente actieve Vault ophalen**
+  const fetchLatestActiveVaultData = useCallback(async () => {
+    try {
+      console.log("[API] 🔍 Fetching latest active race vault...");
+      const response = await fetch(`${API_VAULT_URL}/active`);
+
+      if (!response.ok) {
+        console.warn("[API] ⚠️ No active vault found.");
+        return null;
+      }
+
+      const data: Vault = await response.json();
+      console.log("[API] ✅ Latest Active Vault data retrieved:", data);
+      setVault(data);
+      return data;
+    } catch (error) {
+      console.error("[API] ❌ Error fetching latest active vault:", error);
+      setVault(null);
+      return null;
+    }
+}, []);
+
   // ✅ **Meest recente afgesloten Vault ophalen**
   const fetchLatestVaultData = useCallback(async () => {
     try {
@@ -162,6 +184,7 @@ const useRaceAPI = () => {
     fetchRaceData,
     fetchWinnerData,
     fetchVaultData,
+    fetchLatestActiveVaultData,
     fetchLatestVaultData, // ✅ **API functie beschikbaar voor latest vault**
   };
 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import PickMemeButton from "./PickMemeButton";
 import SelectedMemeDisplay from "./SelectedMemeDisplay";
-import ConnectButton from "./ConnectButton"; // ✅ Nieuwe import
+import ConnectButton from "./ConnectButton";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 interface Meme {
@@ -19,6 +19,7 @@ interface MemeSelectionProps {
 }
 
 const API_RACE_URL = `${import.meta.env.VITE_API_BASE_URL}/races/current`;
+const API_CHECK_PARTICIPANT = `${import.meta.env.VITE_API_BASE_URL}/participants/check`;
 
 const MemeSelection: React.FC<MemeSelectionProps> = ({
   selectedMeme,
@@ -27,7 +28,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
   setHasConfirmedMeme,
   raceId,
 }) => {
-  const { connected } = useWallet(); // ✅ Wallet-status ophalen
+  const { connected, publicKey } = useWallet();
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +56,32 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
 
     fetchRaceData();
   }, []);
+
+  // ✅ **Check of deze wallet al een participant is**
+  useEffect(() => {
+    if (connected && publicKey && raceId) {
+      const checkExistingParticipant = async () => {
+        try {
+          const response = await fetch(
+            `${API_CHECK_PARTICIPANT}/${raceId}/${publicKey.toString()}`
+          );
+          const data = await response.json();
+
+          if (data.exists) {
+            console.log("✅ Meme already selected:", data.memeId);
+            setSelectedMeme(data.memeId);
+            setHasConfirmedMeme(true); // ✅ Voorkomt dat de knop blijft verschijnen
+          } else {
+            console.log("🔄 No previous selection found.");
+          }
+        } catch (error) {
+          console.error("❌ Error checking participant:", error);
+        }
+      };
+
+      checkExistingParticipant();
+    }
+  }, [connected, publicKey, raceId]);
 
   if (loading)
     return <p className="text-center text-white">⏳ Memes laden...</p>;
@@ -87,7 +114,6 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
         </div>
       )}
 
-      {/* ✅ **Toon ConnectButton als de wallet NIET verbonden is** */}
       {!connected ? (
         <ConnectButton />
       ) : (
@@ -95,7 +121,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
           selectedMeme={selectedMeme}
           setHasConfirmedMeme={setHasConfirmedMeme}
           raceId={raceId}
-          hasConfirmedMeme={hasConfirmedMeme} // ✅ Nieuwe prop toevoegen
+          hasConfirmedMeme={hasConfirmedMeme} // ✅ Nieuwe prop toegevoegd
         />
       )}
     </div>
