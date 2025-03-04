@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -32,7 +32,7 @@ interface WebSocketMessage {
 const useRaceWebSocket = (initialRace: Race | null) => {
   const [race, setRace] = useState<Race | null>(initialRace);
   const [vault, setVault] = useState<Vault | null>(null);
-  const raceRef = useRef<Race | null>(initialRace);
+  
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
     onOpen: () => console.log("[WS] ✅ WebSocket Connected"),

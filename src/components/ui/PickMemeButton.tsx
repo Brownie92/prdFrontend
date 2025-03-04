@@ -8,67 +8,42 @@ import {
 
 const PickMemeButton = ({
   selectedMeme,
-  setSelectedMeme,
-  connected,
   raceId,
+  setHasConfirmedMeme,
+  hasConfirmedMeme, // ✅ Nieuwe prop
 }: {
   selectedMeme: string | null;
-  setSelectedMeme: (memeId: string | null) => void;
-  connected: boolean;
   raceId: string;
+  setHasConfirmedMeme: (confirmed: boolean) => void;
+  hasConfirmedMeme: boolean; // ✅ Nieuwe prop
 }) => {
-  const { publicKey, signTransaction } = useWallet(); // Wallet details voor de transactie
+  const { publicKey, signTransaction, connected } = useWallet();
 
-  // ✅ Haal de vault en team wallet op uit de .env variabelen
   const vaultWallet = new PublicKey(import.meta.env.VITE_VAULT_WALLET);
   const teamWallet = new PublicKey(import.meta.env.VITE_TEAM_WALLET);
-
-  // ✅ Devnet verbinding instellen
   const connection = new Connection(
     "https://api.devnet.solana.com",
     "confirmed"
   );
 
+  // ✅ **Transactie afhandelen**
   const handleTransaction = async () => {
-    // ✅ Extra validatie om fouten te voorkomen
-    if (!connected) {
-      alert("Please connect your wallet.");
-      return;
-    }
-    if (!publicKey) {
-      alert("Public key is missing. Try reconnecting your wallet.");
-      return;
-    }
-    if (!selectedMeme) {
-      alert("Please select a meme before proceeding.");
-      return;
-    }
-    if (!signTransaction) {
-      alert("Transaction signing function is not available.");
+    if (!connected || !publicKey || !signTransaction || !selectedMeme) {
+      alert("Please select a meme and connect your wallet.");
       return;
     }
 
     try {
-      // ✅ Start de transactie
       const transaction = new Transaction();
-
-      // ✅ Haal de meest recente blockhash op voor de transactie
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       transaction.recentBlockhash = blockhash;
-
-      // ✅ Stel de fee payer in als de gebruiker zelf
       transaction.feePayer = publicKey;
 
-      // ✅ Definieer de bedragen voor vault en fee
-      const amountVault = 0.2 * 1e9; // 0.2 SOL in lamports
-      const amountFee = 0.01 * 1e9; // 0.01 SOL in lamports
-
-      // ✅ Voeg overdrachten toe aan de transactie
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: vaultWallet,
-          lamports: amountVault,
+          lamports: 0.2 * 1e9,
         })
       );
 
@@ -76,28 +51,18 @@ const PickMemeButton = ({
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: teamWallet,
-          lamports: amountFee,
+          lamports: 0.01 * 1e9,
         })
       );
 
-      console.log("🔄 Signing transaction...");
-
-      // ✅ Onderteken de transactie met de wallet
       const signedTransaction = await signTransaction(transaction);
-
-      console.log("🚀 Sending transaction...");
-
-      // ✅ Verstuur de transactie naar het netwerk
       const txid = await connection.sendRawTransaction(
         signedTransaction.serialize()
       );
-      console.log("✅ Transaction sent:", txid);
-
-      // ✅ Wacht op bevestiging van de transactie
       await connection.confirmTransaction(txid, "confirmed");
-      console.log("🎉 Transaction confirmed:", txid);
 
-      // ✅ Verstuur de deelnamegegevens naar de backend
+      console.log("✅ Transaction confirmed:", txid);
+
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/participants/`,
         {
@@ -106,7 +71,7 @@ const PickMemeButton = ({
             raceId,
             walletAddress: publicKey.toString(),
             memeId: selectedMeme,
-            amountSOL: 0.2, // De totale ingezette SOL
+            amountSOL: 0.2,
           }),
           headers: { "Content-Type": "application/json" },
         }
@@ -117,28 +82,28 @@ const PickMemeButton = ({
       }
 
       console.log("✅ Participant data successfully sent to backend.");
-
-      // ✅ Reset de geselecteerde meme na succesvolle transactie
-      setSelectedMeme(null);
+      setHasConfirmedMeme(true);
       alert("🎉 Transaction successful!");
     } catch (error) {
       console.error("❌ Transaction failed:", error);
-
-      // ✅ Controleer of het een Error-object is, anders gebruik een standaard melding
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-
-      alert(`Transaction failed: ${errorMessage}`);
+      alert(
+        `Transaction failed: ${error instanceof Error ? error.message : "Unknown error occurred"}`
+      );
     }
   };
 
   return (
-    <button
-      onClick={handleTransaction}
-      className="w-full bg-green-400 text-white font-bold py-3 rounded-lg mt-4 hover:bg-green-500 transition shadow-md"
-    >
-      PICK YOUR MEME!
-    </button>
+    <>
+      {!hasConfirmedMeme && ( // ✅ Knop verdwijnt zodra een meme is bevestigd
+        <button
+          onClick={handleTransaction}
+          className="w-full bg-green-400 text-white font-bold py-3 rounded-lg mt-4 hover:bg-green-500 transition shadow-md"
+          disabled={!selectedMeme}
+        >
+          PICK YOUR MEME!
+        </button>
+      )}
+    </>
   );
 };
 
