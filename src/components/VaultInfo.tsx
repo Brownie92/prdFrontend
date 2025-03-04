@@ -45,7 +45,7 @@ const VaultInfo = () => {
 
   return (
     <div className="bg-orange-400 bg-opacity-90 p-4 rounded-xl text-center my-4 text-lg font-semibold shadow-md">
-      {totalVault !== null ? (
+      {totalVault !== null && totalVault !== undefined ? (
         <>CURRENT VAULT: {totalVault.toFixed(2)} SOL</>
       ) : (
         <>No current vault</>

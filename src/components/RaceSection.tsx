@@ -27,15 +27,17 @@ const RaceSection = () => {
 
   // ✅ **Schakel tussen winnaar en race zonder extra API-calls**
   useEffect(() => {
-    if (race?.currentRound && race.currentRound > 0) {
-      console.log("[INFO] 🚀 Active race detected. Switching to race view.");
-      setShowWinner(false);
-    } else {
-      console.log("[INFO] 🏁 No active race. Fetching latest winner...");
+    if (!race || race.status === "closed") {
+      console.log(
+        "[INFO] 🏁 No active race or race closed, fetching latest winner..."
+      );
       setShowWinner(true);
       refreshWinnerData();
+    } else {
+      console.log("[INFO] 🚀 Active race detected. Switching to race view.");
+      setShowWinner(false);
     }
-  }, [race?.raceId, race?.currentRound]);
+  }, [race?.status, race?.raceId, refreshWinnerData]);
 
   // ✅ **Extra Debugging voor wallet connect & ronde 1**
   useEffect(() => {

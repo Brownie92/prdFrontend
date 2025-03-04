@@ -80,6 +80,7 @@ const useRaceWebSocket = (initialRace: Race | null) => {
       case "raceCreated":
         console.log("🚀 [WS] New race created, updating UI...", message.data);
         setRace(message.data);
+        
         break;
   
       case "boostUpdate":
