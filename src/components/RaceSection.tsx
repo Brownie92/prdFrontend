@@ -41,7 +41,6 @@ const RaceSection = () => {
 
   // ✅ **Extra Debugging voor wallet connect & ronde 1**
   useEffect(() => {
-    console.log("[DEBUG] Wallet Connected Status:", connected);
     console.log("[DEBUG] Selected Meme:", selectedMeme);
     console.log("[DEBUG] Has Confirmed Meme:", hasConfirmedMeme);
     console.log("[DEBUG] Current Round:", race?.currentRound);
@@ -78,6 +77,8 @@ const RaceSection = () => {
                   ...meme,
                   boostAmount: meme.boostAmount ?? 0,
                 }))}
+                raceId={race?.raceId ?? ""} // ✅ raceId wordt nu doorgegeven
+                currentRound={race?.currentRound ?? 0} // ✅ currentRound wordt nu doorgegeven
               />
             )}
         </>
