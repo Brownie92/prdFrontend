@@ -5,7 +5,7 @@ import useRaceWebSocket from "../hooks/useRaceWebSocket";
 const VaultInfo = () => {
   const { race, vault, fetchVaultData, fetchLatestActiveVaultData } =
     useRaceAPI();
-  const { vault: wsVault } = useRaceWebSocket(null);
+  const { vault: wsVault, race: wsRace } = useRaceWebSocket(null);
 
   const [totalVault, setTotalVault] = useState<number | null>(null);
 
@@ -40,15 +40,38 @@ const VaultInfo = () => {
     if (wsVault?.totalSol !== undefined) {
       console.log(`[DEBUG] 🔥 WebSocket Vault Update: ${wsVault.totalSol} SOL`);
       setTotalVault(wsVault.totalSol);
+    } else {
+      console.warn("[DEBUG] ⚠️ Geen geldige WebSocket Vault data ontvangen.");
     }
   }, [wsVault]);
 
+  // ✅ **Stap 4: Luister naar nieuwe race events**
+  useEffect(() => {
+    if (wsRace?.raceId) {
+      console.log(`[DEBUG] 🏁 Nieuwe race gestart: ${wsRace.raceId}`);
+      console.log(
+        `[DEBUG] 🔄 Opnieuw ophalen van Vault-data voor raceId: ${wsRace.raceId}`
+      );
+      fetchVaultData(wsRace.raceId);
+    }
+  }, [wsRace?.raceId, fetchVaultData]);
+
+  // Reset de Vault bij een gesloten race
+  useEffect(() => {
+    if (race?.status === "closed") {
+      console.log("[DEBUG] 🏁 Race is gesloten. Resetting vault...");
+      setTotalVault(null);
+    }
+  }, [race?.status]);
+
   return (
     <div className="bg-orange-400 bg-opacity-90 p-4 rounded-xl text-center my-4 text-lg font-semibold shadow-md">
-      {totalVault !== null && totalVault !== undefined ? (
-        <>CURRENT VAULT: {totalVault.toFixed(2)} SOL</>
-      ) : (
+      {race?.status === "closed" ||
+      totalVault === null ||
+      totalVault === undefined ? (
         <>No current vault</>
+      ) : (
+        <>CURRENT VAULT: {totalVault.toFixed(2)} SOL</>
       )}
     </div>
   );

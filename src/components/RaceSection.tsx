@@ -29,12 +29,14 @@ const RaceSection = () => {
   useEffect(() => {
     if (!race || race.status === "closed") {
       console.log(
-        "[INFO] 🏁 No active race or race closed, fetching latest winner..."
+        "[INFO] 🏁 Race gesloten of niet actief. Fetching latest winner..."
       );
       setShowWinner(true);
       refreshWinnerData();
     } else {
-      console.log("[INFO] 🚀 Active race detected. Switching to race view.");
+      console.log(
+        "[INFO] 🚀 Actieve race gedetecteerd. Switching to race view."
+      );
       setShowWinner(false);
     }
   }, [race?.status, race?.raceId, refreshWinnerData]);
@@ -45,6 +47,8 @@ const RaceSection = () => {
     console.log("[DEBUG] Has Confirmed Meme:", hasConfirmedMeme);
     console.log("[DEBUG] Current Round:", race?.currentRound);
   }, [connected, selectedMeme, hasConfirmedMeme, race?.currentRound]);
+
+  console.log("[DEBUG] 🏁 Current Race Status:", race?.status);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
