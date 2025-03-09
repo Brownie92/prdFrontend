@@ -135,6 +135,13 @@ const useRaceWebSocket = (initialRace: Race | null) => {
     }
   }, [race?.currentRound]);
 
+  useEffect(() => {
+    if (race?.currentRound) {
+      console.log("[WS] 🔄 Nieuwe ronde gedetecteerd, reset WebSocket boosts...");
+      setWsBoosts({});
+    }
+  }, [race?.currentRound]);
+
   return { race, vault, wsBoosts, sendJsonMessage, readyState, webSocketStatus: getWebSocketStatus() };
 };
 

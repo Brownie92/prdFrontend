@@ -92,10 +92,22 @@ const useRaceData = () => {
   // ✅ **Zorg ervoor dat boosts worden opgehaald bij een nieuwe ronde**
   useEffect(() => {
     if (race?.raceId && race.currentRound > 0) {
-      console.log(`[INFO] 📡 Fetching boosts for Race ${race.raceId}, Round ${race.currentRound}`);
-      fetchBoostsData(race.raceId, race.currentRound);
+      console.log(`[INFO] 📡 Boosts ophalen voor nieuwe ronde ${race.currentRound}`);
+      
+      fetchBoostsData(race.raceId, race.currentRound).then((newBoosts) => {
+        console.log("[INFO] ✅ Boosts geüpdatet voor nieuwe ronde:", newBoosts);
+        setBoosts(newBoosts); // ✅ Correcte update
+      });
     }
-  }, [race?.raceId, race?.currentRound]);
+  }, [race?.raceId, race?.currentRound, fetchBoostsData]);
+
+  // ✅ Reset boosts bij een nieuwe ronde
+  useEffect(() => {
+    if (race?.currentRound) {
+      console.log(`[INFO] 🔄 Nieuwe ronde ${race.currentRound} gedetecteerd, resetting boosts...`);
+      setBoosts({}); // Reset de gecombineerde boosts correct
+    }
+  }, [race?.currentRound]);
 
   return {
     race,
