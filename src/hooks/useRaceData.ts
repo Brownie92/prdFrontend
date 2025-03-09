@@ -7,9 +7,11 @@ const useRaceData = () => {
   const {
     race: apiRace,
     vault: apiVault, // ✅ Voeg Vault toe uit API
+    apiBoosts,
     fetchRaceData,
     fetchWinnerData,
     fetchVaultData, // ✅ Vault ophalen indien nodig
+    fetchBoostsData, // ✅ Zorg dat boosts correct worden opgehaald
     winner,
     loading,
     error,
@@ -18,12 +20,14 @@ const useRaceData = () => {
   const {
     race: wsRace,
     vault: wsVault, // ✅ Voeg Vault toe uit WebSocket
+    wsBoosts,
     sendJsonMessage,
     readyState,
     webSocketStatus,
   } = useRaceWebSocket(apiRace);
 
   const [countdown, setCountdown] = useState<string>("00:00");
+  const [boosts, setBoosts] = useState<{ [key: string]: number }>({});
 
   // ✅ Gebruik WebSocket data als die er is, anders API-data
   const race: Race | null = wsRace ?? apiRace;
@@ -78,16 +82,33 @@ const useRaceData = () => {
     return () => clearInterval(interval);
   }, [race?.roundEndTime]);
 
+  // ✅ **Combineer API- en WebSocket-boosts**
+  useEffect(() => {
+    const combinedBoosts = wsBoosts && Object.keys(wsBoosts).length ? wsBoosts : apiBoosts;
+    setBoosts(combinedBoosts);
+    console.log("[INFO] 🔄 Combined boosts updated:", combinedBoosts);
+  }, [apiBoosts, wsBoosts]);
+
+  // ✅ **Zorg ervoor dat boosts worden opgehaald bij een nieuwe ronde**
+  useEffect(() => {
+    if (race?.raceId && race.currentRound > 0) {
+      console.log(`[INFO] 📡 Fetching boosts for Race ${race.raceId}, Round ${race.currentRound}`);
+      fetchBoostsData(race.raceId, race.currentRound);
+    }
+  }, [race?.raceId, race?.currentRound]);
+
   return {
     race,
-    vault, // ✅ Vault nu beschikbaar in return-object
+    vault,
     winner,
     countdown,
     loading,
     error,
+    boosts, // ✅ Gecombineerde boost-data nu beschikbaar!
     refreshRaceData: fetchRaceData,
     refreshWinnerData: fetchWinnerData,
-    refreshVaultData: fetchVaultData, // ✅ Mogelijkheid om handmatig Vault te refreshen
+    refreshVaultData: fetchVaultData,
+    fetchBoostsData,  // ✅ Fix: deze moet worden doorgegeven
     sendJsonMessage,
     readyState,
     webSocketStatus,

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import useRaceAPI from "./useRaceAPI"; // ✅ Correcte import
 
 const WS_URL = import.meta.env.VITE_WS_URL;
 
@@ -33,10 +32,7 @@ interface WebSocketMessage {
 const useRaceWebSocket = (initialRace: Race | null) => {
   const [race, setRace] = useState<Race | null>(initialRace);
   const [vault, setVault] = useState<Vault | null>(null);
-  const [pendingBoosts, setPendingBoosts] = useState<any[]>([]); // ✅ Bewaar boost voor later
-  const [wsBoosts, setWsBoosts] = useState<{ [key: string]: number }>({}); // ✅ Houd WebSocket-boosts bij
-
-  const { fetchRaceData } = useRaceAPI(); // ✅ Gebruik de race API om data op te halen
+  const [wsBoosts, setWsBoosts] = useState<{ [key: string]: number }>({});
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
     onOpen: () => console.log("[WS] ✅ WebSocket Connected"),
@@ -61,91 +57,71 @@ const useRaceWebSocket = (initialRace: Race | null) => {
   useEffect(() => {
     if (!lastJsonMessage) return;
     const message = lastJsonMessage as WebSocketMessage;
-  
+
     switch (message.event) {
       case "connection":
         console.log("🔗 [WS] Connection established:", message.data);
         break;
-  
+
       case "raceUpdate":
         console.log("🔄 [WS] Updating race data:", message.data);
-        setRace((prevRace) => {
-          if (!message.data.raceId) return prevRace;
-          return {
-            ...message.data,
-            memes: message.data.memes.map((m: any) => ({
-              ...m,
-              boostAmount: m.boostAmount ?? 0,
-            })),
-          };
-        });
+        setRace(message.data);
         break;
-  
+
       case "raceCreated":
         console.log("🚀 [WS] New race created, updating UI...", message.data);
         setRace(message.data);
         break;
-  
+
       case "boostUpdate":
-        console.log("🚀 [WS] Boost Update received:", JSON.stringify(message.data, null, 2));
+        console.log("🚀 [WS] Boost Update ontvangen:", JSON.stringify(message.data, null, 2));
 
         setRace((prevRace) => {
-            if (!prevRace) {
-                console.warn("[WS] ❌ No previous race found. Fetching race first...");
-                console.log("[WS] 🔍 Fetching race before processing boost...");
-                fetchRaceData().then(() => {
-                    console.log("[WS] ✅ Race fetched, retrying boost update...");
-                    setPendingBoosts((prev) => [...prev, message.data]);
-                }).catch((error) => {
-                    console.error("[WS] ❌ Error fetching race:", error);
-                });
-                return prevRace;
-            }
+          if (!prevRace) return prevRace;
 
-            const updatedMemes = prevRace.memes.map((meme) => {
-                const foundBoost = message.data.boosts.find(
-                    (b: any) => String(b._id) === String(meme.memeId) || String(b.memeId) === String(meme.memeId)
-                );
+          const updatedMemes = prevRace.memes.map((meme) => {
+            const foundBoost = message.data.boosts.find(
+              (b: any) => String(b.memeId) === String(meme.memeId)
+            );
 
-                return { 
-                    ...meme, 
-                    boostAmount: foundBoost ? foundBoost.totalSol : meme.boostAmount 
-                };
-            });
+            return {
+              ...meme,
+              boostAmount: foundBoost ? foundBoost.totalSol : 0,
+            };
+          });
 
-            return { ...prevRace, memes: updatedMemes };
+          return { ...prevRace, memes: updatedMemes };
         });
 
-        // ✅ Update WebSocket-boosts state apart
-        setWsBoosts((prevWsBoosts) => {
-            const newBoosts = { ...prevWsBoosts };
-            message.data.boosts.forEach((boost: any) => {
-                newBoosts[String(boost._id)] = boost.totalSol;
-            });
+        setWsBoosts(() => {
+          const newBoosts = message.data.boosts.reduce((acc: { [key: string]: number }, boost: any) => {
+            acc[String(boost.memeId)] = boost.totalSol;
+            return acc;
+          }, {});
 
-            console.log("[WS] ✅ WebSocket Boost state updated:", newBoosts);
-            return newBoosts;
+          console.log("[WS] ✅ WebSocket Boost state bijgewerkt:", newBoosts);
+          return newBoosts;
         });
 
         break;
-  
+
       case "vaultUpdate":
         console.log("💰 [WS] Vault Update received:", message.data);
         setVault(message.data);
         break;
-  
+
       case "winnerUpdate":
         console.log("🏆 [WS] Winner Update received:", message.data);
-        setRace(null); // Race afsluiten
-        setVault(null); // Vault resetten
+        setRace(null);
+        setVault(null);
         break;
-  
+
       case "raceClosed":
         console.log("🏁 [WS] Race closed, switching to winner view...");
         setRace(null);
         setVault(null);
         break;
-  
+
       default:
         console.warn(`[WS] ⚠️ Unhandled WebSocket event: ${message.event}`, message.data);
         break;
@@ -153,31 +129,11 @@ const useRaceWebSocket = (initialRace: Race | null) => {
   }, [lastJsonMessage]);
 
   useEffect(() => {
-    if (race && pendingBoosts.length > 0) {
-        console.log("[WS] 🔄 Processing pending boosts...");
-        
-        setRace((prevRace) => {
-            if (!prevRace) return prevRace;
-
-            const updatedMemes = prevRace.memes.map((meme) => {
-                const foundBoost = pendingBoosts.find((boostData) =>
-                    boostData.boosts.some((b: any) =>
-                        String(b._id) === String(meme.memeId) || String(b.memeId) === String(meme.memeId)
-                    )
-                );
-
-                return { 
-                    ...meme, 
-                    boostAmount: foundBoost ? foundBoost.boosts[0].totalSol : meme.boostAmount 
-                };
-            });
-
-            return { ...prevRace, memes: updatedMemes };
-        });
-
-        setPendingBoosts([]); // ✅ Wis de opgeslagen boosts nadat ze zijn verwerkt
+    if (race?.currentRound) {
+      console.log("[WS] 🔄 Nieuwe ronde gedetecteerd, reset WebSocket boosts...");
+      setWsBoosts({});
     }
-}, [race]); // 🔄 Zodra de race beschikbaar is, verwerken we de opgeslagen boosts
+  }, [race?.currentRound]);
 
   return { race, vault, wsBoosts, sendJsonMessage, readyState, webSocketStatus: getWebSocketStatus() };
 };

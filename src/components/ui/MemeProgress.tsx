@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import useRaceAPI from "../../hooks/useRaceAPI";
-import useRaceWebSocket from "../../hooks/useRaceWebSocket";
+import React, { useEffect, useMemo, useState } from "react";
+import useRaceData from "../../hooks/useRaceData";
 import ProgressBar from "./ProgressBar";
+import BoostIcon from "./BoostIcon"; // ✅ Import BoostIcon
 
 interface Meme {
   memeId: string;
@@ -22,104 +22,32 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
   raceId,
   currentRound,
 }) => {
-  const { fetchBoostsData, apiBoosts } = useRaceAPI();
-  const { race: wsRace, vault, wsBoosts } = useRaceWebSocket(null);
-  const [vaultUpdated, setVaultUpdated] = useState<boolean>(false);
+  const { boosts, fetchBoostsData } = useRaceData();
+  const [currentRoundBoosts, setCurrentRoundBoosts] = useState<
+    Map<string, number>
+  >(new Map());
 
   useEffect(() => {
-    console.log("[INFO] 🏁 Actieve Race ID:", raceId);
-    console.log("[INFO] 🔄 Nieuwe ronde gedetecteerd:", currentRound);
-  }, [raceId, currentRound]);
-
-  const loadApiBoosts = useCallback(async () => {
     if (raceId && currentRound > 0) {
-      console.log(
-        `[API] 📡 Fetching boosts voor race ${raceId}, ronde ${currentRound}...`
-      );
-
-      const boostsData = await fetchBoostsData(raceId, currentRound);
-      if (Array.isArray(boostsData)) {
-        const groupedBoosts = boostsData.reduce(
-          (acc: { [key: string]: number }, boost: any) => {
-            acc[String(boost.memeId)] = boost.totalSol;
-            return acc;
-          },
-          {}
-        );
-
-        console.log("[API] ✅ Boosts opgehaald via API:", groupedBoosts);
-      } else {
-        console.warn("[API] ⚠️ Geen boosts gevonden in API.");
-      }
+      fetchBoostsData(raceId, currentRound);
     }
   }, [raceId, currentRound, fetchBoostsData]);
 
   useEffect(() => {
-    loadApiBoosts();
-  }, [loadApiBoosts]);
-
-  useEffect(() => {
-    console.log("[INFO] 🛠️ Reset WebSocket & API boosts bij ronde-start.");
-    loadApiBoosts();
-  }, [currentRound]);
-
-  useEffect(() => {
-    if (wsRace?.memes) {
-      console.log("[WS] 🚀 WebSocket boost update ontvangen:", wsRace.memes);
-
-      console.log(
-        "[MemeProgress] ✅ Boost state geüpdatet na WebSocket-update:",
-        wsRace.memes
-      );
-    } else {
-      console.warn("[WS] ⚠️ Geen WebSocket meme-data ontvangen.");
-    }
-  }, [wsRace?.memes]);
-
-  useEffect(() => {
-    if (vault) {
-      console.log("[INFO] 💰 Vault-update ontvangen:", vault);
-      setVaultUpdated(true);
-    }
-  }, [vault]);
-
-  useEffect(() => {
-    if (!wsRace) {
-      console.log("[INFO] 🏆 Winner gedetecteerd, reset boosts...");
-    }
-  }, [wsRace]);
-
-  const combinedBoosts = useMemo(() => {
-    console.log("[MemeProgress] 🔍 Samenvoegen van API en WS boosts...");
-
-    const mergedBoosts = { ...apiBoosts };
-    Object.entries(wsBoosts).forEach(([memeId, boost]) => {
-      mergedBoosts[memeId] = (mergedBoosts[memeId] ?? 0) + boost;
-    });
-
-    console.log(
-      "[MemeProgress] ✅ Gecombineerde Boosts (API + WS):",
-      mergedBoosts
+    setCurrentRoundBoosts(
+      new Map(
+        Object.entries(boosts).map(([memeId, totalSol]) => [memeId, totalSol])
+      )
     );
-    return mergedBoosts;
-  }, [apiBoosts, wsBoosts]);
+  }, [boosts]);
 
   const validatedMemes = useMemo(() => {
-    const combinedMemes = memes.map((meme) => ({
+    return memes.map((meme) => ({
       ...meme,
       progress: typeof meme.progress === "number" ? meme.progress : 0,
-      boostAmount: combinedBoosts[String(meme.memeId)] ?? 0,
+      boostAmount: currentRoundBoosts.get(meme.memeId) || 0,
     }));
-
-    console.log(
-      "[MemeProgress] 🏁 Race memes vóór boost merging:",
-      JSON.stringify(memes, null, 2)
-    );
-    console.log("[MemeProgress] 🔄 Ontvangen API-boosts:", apiBoosts);
-    console.log("[MemeProgress] 🔄 Ontvangen WebSocket-boosts:", wsBoosts);
-
-    return combinedMemes;
-  }, [memes, combinedBoosts, apiBoosts, wsBoosts]);
+  }, [memes, currentRoundBoosts]);
 
   const sortedByBoost = useMemo(
     () =>
@@ -129,13 +57,10 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
     [validatedMemes]
   );
 
-  const topBoosted = sortedByBoost.slice(0, 3).filter((m) => m.boostAmount > 0);
-
-  const rankingIcons: { [key: number]: string } = {
-    0: "🥇",
-    1: "🥈",
-    2: "🥉",
-  };
+  const topBoosted = useMemo(
+    () => sortedByBoost.slice(0, 3).filter((m) => m.boostAmount > 0),
+    [sortedByBoost]
+  );
 
   const maxProgress = useMemo(
     () => Math.max(...validatedMemes.map((m) => m.progress ?? 0), 1),
@@ -157,12 +82,7 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
             : 0;
 
         const rankIndex = topBoosted.findIndex((m) => m.memeId === meme.memeId);
-        const boostIcon =
-          rankIndex !== -1
-            ? rankingIcons[rankIndex]
-            : meme.boostAmount && meme.boostAmount > 0
-              ? "🔥"
-              : "";
+        const rankPosition = rankIndex !== -1 ? rankIndex : null;
 
         return (
           <div
@@ -176,10 +96,12 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
             />
             <ProgressBar progress={progressWidth} boostProgress={boostWidth} />
             <span className="ml-3 font-bold text-white flex items-center min-w-[50px] justify-end">
-              {meme.progress}{" "}
-              <span className="ml-1 text-xl w-6 flex justify-center">
-                {boostIcon ? boostIcon : ""}
-              </span>
+              {meme.progress}
+              <BoostIcon
+                boostAmount={meme.boostAmount ?? 0}
+                rankIndex={rankPosition}
+              />
+              {/* ✅ BoostIcon als los component */}
             </span>
           </div>
         );

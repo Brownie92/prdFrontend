@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import useRaceWebSocket from "./useRaceWebSocket";
 
 const API_RACE_URL = `${import.meta.env.VITE_API_BASE_URL}/races/current`;
 const API_WINNER_URL = `${import.meta.env.VITE_API_BASE_URL}/winners/latest`;
@@ -42,21 +43,16 @@ const useRaceAPI = () => {
   const [error, setError] = useState<string | null>(null);
   const [apiBoosts, setApiBoosts] = useState<{ [key: string]: number }>({});
 
+  const { wsBoosts } = useRaceWebSocket(race);
+
   const fetchWinnerData = useCallback(async () => {
-    if (race && race.currentRound > 0) {
-      console.log("[API] 🚀 Skipping winner fetch - active race detected.");
-      return;
-    }
+    if (race && race.currentRound > 0) return;
 
     try {
-      console.log("[API] 🔍 Fetching latest winner...");
       const response = await fetch(API_WINNER_URL);
-      if (!response.ok) {
-        console.warn("[API] ⚠️ No winner found.");
-        return null;
-      }
+      if (!response.ok) return null;
+
       const data: Winner = await response.json();
-      console.log("[API] 🏆 Winner retrieved:", data);
       setWinner(data);
       return data;
     } catch (error) {
@@ -67,21 +63,12 @@ const useRaceAPI = () => {
 
   const fetchVaultData = useCallback(async (raceId: string) => {
     try {
-      if (!raceId || !raceId.startsWith("race")) {
-        console.error("[API] ❌ Invalid raceId format for Vault fetch:", raceId);
-        return null;
-      }
+      if (!raceId.startsWith("race")) return null;
 
-      console.log(`[API] 💰 Fetching Vault for Race ID: ${raceId}`);
       const response = await fetch(`${API_VAULT_URL}/${raceId}`);
-
-      if (!response.ok) {
-        console.warn(`[API] ⚠️ Vault not found for raceId: ${raceId}`);
-        return null;
-      }
+      if (!response.ok) return null;
 
       const data: Vault = await response.json();
-      console.log("[API] ✅ Vault data retrieved:", data);
       setVault(data);
       return data;
     } catch (error) {
@@ -91,39 +78,12 @@ const useRaceAPI = () => {
     }
   }, []);
 
-  const fetchLatestActiveVaultData = useCallback(async () => {
-    try {
-      console.log("[API] 🔍 Fetching latest active race vault...");
-      const response = await fetch(`${API_VAULT_URL}/active`);
-
-      if (!response.ok) {
-        console.warn("[API] ⚠️ No active vault found.");
-        return null;
-      }
-
-      const data: Vault = await response.json();
-      console.log("[API] ✅ Latest Active Vault data retrieved:", data);
-      setVault(data);
-      return data;
-    } catch (error) {
-      console.error("[API] ❌ Error fetching latest active vault:", error);
-      setVault(null);
-      return null;
-    }
-  }, []);
-
   const fetchLatestVaultData = useCallback(async () => {
     try {
-      console.log("[API] 🔍 Fetching latest closed race vault...");
       const response = await fetch(`${API_VAULT_URL}/latest`);
-
-      if (!response.ok) {
-        console.warn("[API] ⚠️ No closed vault found.");
-        return null;
-      }
+      if (!response.ok) return null;
 
       const data: Vault = await response.json();
-      console.log("[API] ✅ Latest Vault data retrieved:", data);
       setLatestVault(data);
       return data;
     } catch (error) {
@@ -136,74 +96,87 @@ const useRaceAPI = () => {
   const fetchRaceData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      console.log("[API] 🏁 Calling fetchRaceData...");
       const response = await fetch(API_RACE_URL);
       if (!response.ok) throw new Error("Race not found");
 
       const data: Race = await response.json();
-      console.log("[API] 🔄 Race API response received:", data);
+      if (!data.raceId) return;
 
-      if (!data.raceId) {
-        console.error("[ERROR] ❌ Race received without raceId!", data);
-        return;
-      }
-
-      if (data.currentRound && data.currentRound > 0) {
-        console.log("[API] ✅ Active race found, updating state.");
-        setRace(data);
-        console.log("[API] ✅ Race state updated successfully:", data);
-        setWinner(null);
-
-        console.log("[API] 🔄 Fetching Vault for active race...");
-        await fetchVaultData(data.raceId);
-      } else {
-        console.log("[API] ⚠️ No active race found, fetching latest winner...");
-        await fetchWinnerData();
-        await fetchLatestVaultData();
-      }
+      setRace(data);
+      setWinner(null);
+      await fetchVaultData(data.raceId);
     } catch (error) {
-      console.error("[API] ❌ Error fetching race:", error instanceof Error ? error.message : error);
-      setError("Race not found. Please try again later.");
+      console.error("[API] ❌ Error fetching race:", error);
+      setError("Race not found.");
     } finally {
       setLoading(false);
     }
-  }, [fetchWinnerData, fetchVaultData, fetchLatestVaultData]);
+  }, [fetchVaultData]);
 
   const fetchBoostsData = useCallback(async (raceId: string, round: number) => {
+    if (!raceId || round <= 0) return {};
+
     try {
-      console.log(`[API] 📡 Fetching boosts voor race ${raceId}, ronde ${round}...`);
-      const response = await fetch(`${API_BOOSTS_URL}/${raceId}/${round}`);
-  
-      if (!response.ok) {
-        console.warn(`[API] ⚠️ No boosts found for race ${raceId}, round ${round}`);
-        return null;
-      }
-  
-      const data = await response.json();
-      console.log("[API] ✅ Boost data retrieved:", data.boosts);
-  
-      // Groepeer boosts per memeId
-      const groupedBoosts = data.boosts.reduce((acc: { [key: string]: number }, boost: any) => {
-        acc[String(boost.memeId)] = boost.totalSol;
-        return acc;
-      }, {});
-  
-      console.log("[API] 🔄 Gecombineerde Boosts na ophalen:", groupedBoosts);
-      setApiBoosts(groupedBoosts);
-      return groupedBoosts;
+        console.log(`[API] 📡 Fetching boosts for race ${raceId}, round ${round}`);
+        const response = await fetch(`${API_BOOSTS_URL}/${raceId}/${round}`);
+
+        if (!response.ok) {
+            console.warn(`[API] ⚠️ No boosts found for race ${raceId}, round ${round}`);
+            return {};
+        }
+
+        const data = await response.json();
+        console.log("[DEBUG] 📡 API Boosts response:", data);
+
+        if (!data || !Array.isArray(data.boosts) || data.boosts.length === 0) {
+            console.warn("[API] ⚠️ No valid boosts found in response.");
+            return {};
+        }
+
+        const formattedBoosts = data.boosts.reduce((acc, boost) => {
+            acc[boost.memeId] = boost.totalSol;
+            return acc;
+        }, {} as { [key: string]: number });
+
+        console.log("[INFO] ✅ Processed Boosts Data:", formattedBoosts);
+        setApiBoosts(formattedBoosts);
+        return formattedBoosts;
     } catch (error) {
-      console.error("[API] ❌ Error fetching boosts:", error);
+        console.error("[API] ❌ Error fetching boosts:", error);
+        return {};
+    }
+}, []);
+
+  const fetchLatestActiveVaultData = useCallback(async () => {
+    try {
+      console.log("[API] 🔍 Fetching latest active race vault...");
+      const response = await fetch(`${API_VAULT_URL}/active`);
+      if (!response.ok) return null;
+  
+      const data: Vault = await response.json();
+      console.log("[API] ✅ Latest Active Vault data retrieved:", data);
+      setVault(data);
+      return data;
+    } catch (error) {
+      console.error("[API] ❌ Error fetching latest active vault:", error);
+      setVault(null);
       return null;
     }
   }, []);
 
   useEffect(() => {
-    if (race && race.raceId && race.currentRound > 0) {
-      console.log(`[API] 🔄 Nieuwe race/ronde gedetecteerd. Fetching boosts voor race ${race.raceId}, ronde ${race.currentRound}...`);
-      fetchBoostsData(race.raceId, race.currentRound);
+    if (race?.raceId && race.currentRound > 0) {
+      if (!wsBoosts || Object.keys(wsBoosts).length === 0) {
+        fetchBoostsData(race.raceId, race.currentRound).then(setApiBoosts);
+      }
     }
-  }, [race?.raceId, race?.currentRound]);
+  }, [race?.raceId, race?.currentRound, fetchBoostsData, wsBoosts]);
+
+  useEffect(() => {
+    setApiBoosts((prevBoosts) => ({ ...prevBoosts, ...(wsBoosts || {}) }));
+  }, [wsBoosts]);
 
   return {
     race,
@@ -212,12 +185,12 @@ const useRaceAPI = () => {
     winner,
     loading,
     error,
-    apiBoosts, // ✅ Nu beschikbaar in andere hooks/components
+    apiBoosts,
     fetchRaceData,
     fetchWinnerData,
     fetchVaultData,
-    fetchLatestActiveVaultData,
     fetchLatestVaultData,
+    fetchLatestActiveVaultData, // ✅ Voeg deze regel toe
     fetchBoostsData,
   };
 };

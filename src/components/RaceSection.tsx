@@ -48,7 +48,7 @@ const RaceSection = () => {
     console.log("[DEBUG] Current Round:", race?.currentRound);
   }, [connected, selectedMeme, hasConfirmedMeme, race?.currentRound]);
 
-  console.log("[DEBUG] 🏁 Current Race Status:", race?.status);
+  //console.log("[DEBUG] 🏁 Current Race Status:", race?.status);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
@@ -77,10 +77,7 @@ const RaceSection = () => {
             race.currentRound > 1 &&
             race.memes?.length > 0 && (
               <MemeProgress
-                memes={race.memes.map((meme) => ({
-                  ...meme,
-                  boostAmount: meme.boostAmount ?? 0,
-                }))}
+                memes={race.memes}
                 raceId={race?.raceId ?? ""} // ✅ raceId wordt nu doorgegeven
                 currentRound={race?.currentRound ?? 0} // ✅ currentRound wordt nu doorgegeven
               />
