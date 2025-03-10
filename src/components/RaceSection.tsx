@@ -5,6 +5,7 @@ import RaceStatus from "./RaceStatus";
 import WinnerDisplay from "./WinnerDisplay";
 import MemeProgress from "./ui/MemeProgress";
 import useRaceData from "../hooks/useRaceData";
+import BoostMemeInput from "./ui/BoostMemeInput";
 
 const RaceSection = () => {
   const { connected } = useWallet();
@@ -13,7 +14,7 @@ const RaceSection = () => {
 
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
   const [hasConfirmedMeme, setHasConfirmedMeme] = useState<boolean>(false);
-  const [showWinner, setShowWinner] = useState<boolean>(true);
+  const [showWinner, setShowWinner] = useState<boolean>(false);
   const [initialized, setInitialized] = useState<boolean>(false);
 
   // ✅ **Race data ophalen bij eerste render**
@@ -25,30 +26,36 @@ const RaceSection = () => {
     }
   }, [initialized, refreshRaceData]);
 
-  // ✅ **Schakel tussen winnaar en race zonder extra API-calls**
+  // ✅ **Schakel naar WinnerDisplay als de race is afgelopen of null is**
   useEffect(() => {
     if (!race || race.status === "closed") {
-      console.log(
-        "[INFO] 🏁 Race gesloten of niet actief. Fetching latest winner..."
-      );
+      console.log("[INFO] 🏁 Geen actieve race. WinnerDisplay tonen...");
       setShowWinner(true);
       refreshWinnerData();
+      if (!race) {
+        console.log("[INFO] 🔄 Race is null, opnieuw race data ophalen...");
+        refreshRaceData(); // ✅ Forceer race refresh als race null is
+      }
     } else {
-      console.log(
-        "[INFO] 🚀 Actieve race gedetecteerd. Switching to race view."
-      );
       setShowWinner(false);
     }
-  }, [race?.status, race?.raceId, refreshWinnerData]);
+  }, [race?.status, race?.currentRound, refreshWinnerData, refreshRaceData]);
 
-  // ✅ **Extra Debugging voor wallet connect & ronde 1**
+  // ✅ **Debugging logs voor extra controle**
   useEffect(() => {
+    console.log("[DEBUG] 🏁 Current Race:", race);
     console.log("[DEBUG] Selected Meme:", selectedMeme);
     console.log("[DEBUG] Has Confirmed Meme:", hasConfirmedMeme);
     console.log("[DEBUG] Current Round:", race?.currentRound);
-  }, [connected, selectedMeme, hasConfirmedMeme, race?.currentRound]);
-
-  //console.log("[DEBUG] 🏁 Current Race Status:", race?.status);
+    console.log("[DEBUG] Show Winner:", showWinner);
+  }, [
+    connected,
+    race,
+    selectedMeme,
+    hasConfirmedMeme,
+    race?.currentRound,
+    showWinner,
+  ]);
 
   return (
     <div className="bg-orange-400 p-6 rounded-xl shadow-lg">
@@ -72,15 +79,23 @@ const RaceSection = () => {
             />
           )}
 
-          {/* ✅ **MemeProgress wordt alleen in ronde 2-6 weergegeven** */}
+          {/* ✅ **MemeProgress en BoostMemeInput worden alleen in ronde 2-6 weergegeven** */}
           {race?.currentRound &&
             race.currentRound > 1 &&
+            race.currentRound < 7 &&
             race.memes?.length > 0 && (
-              <MemeProgress
-                memes={race.memes}
-                raceId={race?.raceId ?? ""} // ✅ raceId wordt nu doorgegeven
-                currentRound={race?.currentRound ?? 0} // ✅ currentRound wordt nu doorgegeven
-              />
+              <>
+                <MemeProgress
+                  memes={race.memes}
+                  raceId={race?.raceId ?? ""}
+                  currentRound={race?.currentRound ?? 0}
+                  selectedMeme={selectedMeme ?? ""}
+                />
+                <BoostMemeInput
+                  raceId={race?.raceId ?? ""}
+                  currentRound={race?.currentRound ?? 0}
+                />
+              </>
             )}
         </>
       )}

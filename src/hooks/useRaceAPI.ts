@@ -135,10 +135,13 @@ const useRaceAPI = () => {
             return {};
         }
 
-        const formattedBoosts = data.boosts.reduce((acc, boost) => {
+        const formattedBoosts = data.boosts.reduce(
+          (acc: Record<string, number>, boost: { memeId: string; totalSol: number }) => {
             acc[boost.memeId] = boost.totalSol;
             return acc;
-        }, {} as { [key: string]: number });
+          },
+          {} as Record<string, number>
+        );
 
         console.log("[INFO] ✅ Processed Boosts Data:", formattedBoosts);
         setApiBoosts(formattedBoosts);

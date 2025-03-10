@@ -15,6 +15,7 @@ interface MemeProgressProps {
   memes: Meme[];
   raceId: string;
   currentRound: number;
+  selectedMeme: string | null;
 }
 
 const MemeProgress: React.FC<MemeProgressProps> = ({
@@ -103,6 +104,8 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
               />
               {/* ✅ BoostIcon als los component */}
             </span>
+
+            {/* Voeg BoostMemeInput toe */}
           </div>
         );
       })}
