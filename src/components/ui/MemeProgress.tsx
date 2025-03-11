@@ -15,13 +15,14 @@ interface MemeProgressProps {
   memes: Meme[];
   raceId: string;
   currentRound: number;
-  selectedMeme: string | null;
+  selectedMeme: string; // Added selectedMeme
 }
 
 const MemeProgress: React.FC<MemeProgressProps> = ({
   memes,
   raceId,
   currentRound,
+  selectedMeme, // Added selectedMeme
 }) => {
   const { boosts, fetchBoostsData } = useRaceData();
   const [currentRoundBoosts, setCurrentRoundBoosts] = useState<
@@ -90,11 +91,22 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
             key={meme.memeId}
             className="flex items-center space-x-3 transition-all duration-500"
           >
-            <img
-              src={meme.url}
-              alt={meme.name}
-              className="w-12 h-12 rounded-full border-4 border-transparent transition-all duration-500"
-            />
+            <div className="relative">
+              <img
+                src={meme.url}
+                alt={meme.name}
+                className={`w-12 h-12 rounded-full transition-all duration-500 ${
+                  meme.memeId === selectedMeme
+                    ? "border-4 border-green-500"
+                    : ""
+                }`}
+              />
+              {meme.memeId === selectedMeme && (
+                <span className="absolute top-0 left-0 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-sm font-bold">
+                  ✅
+                </span>
+              )}
+            </div>
             <ProgressBar progress={progressWidth} boostProgress={boostWidth} />
             <span className="ml-3 font-bold text-white flex items-center min-w-[50px] justify-end">
               {meme.progress}
@@ -102,10 +114,7 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
                 boostAmount={meme.boostAmount ?? 0}
                 rankIndex={rankPosition}
               />
-              {/* ✅ BoostIcon als los component */}
             </span>
-
-            {/* Voeg BoostMemeInput toe */}
           </div>
         );
       })}
