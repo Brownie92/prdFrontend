@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import useRaceData from "../../hooks/useRaceData";
 import ProgressBar from "./ProgressBar";
-import BoostIcon from "./BoostIcon"; // ✅ Import BoostIcon
+import BoostIcon from "./BoostIcon";
+import SelectedMemeHighlighter from "./SelectedMemeHighlighter";
 
 interface Meme {
   memeId: string;
@@ -22,7 +23,6 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
   memes,
   raceId,
   currentRound,
-  selectedMeme, // Added selectedMeme
 }) => {
   const { boosts, fetchBoostsData } = useRaceData();
   const [currentRoundBoosts, setCurrentRoundBoosts] = useState<
@@ -95,17 +95,8 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
               <img
                 src={meme.url}
                 alt={meme.name}
-                className={`w-12 h-12 rounded-full transition-all duration-500 ${
-                  meme.memeId === selectedMeme
-                    ? "border-4 border-green-500"
-                    : ""
-                }`}
+                className={`w-12 h-12 rounded-full transition-all duration-500 ${SelectedMemeHighlighter({ raceId, memeId: meme.memeId })}`}
               />
-              {meme.memeId === selectedMeme && (
-                <span className="absolute top-0 left-0 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-sm font-bold">
-                  ✅
-                </span>
-              )}
             </div>
             <ProgressBar progress={progressWidth} boostProgress={boostWidth} />
             <span className="ml-3 font-bold text-white flex items-center min-w-[50px] justify-end">

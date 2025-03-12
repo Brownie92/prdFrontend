@@ -8,14 +8,12 @@ import {
 } from "@solana/web3.js";
 import useRaceData from "../../hooks/useRaceData";
 
-// ✅ Voeg een vaste API Base URL toe
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-console.log("[DEBUG] API Base URL:", API_BASE_URL);
 
 interface BoostMemeInputProps {
   raceId: string;
-  currentRound: number; // ✅ Voeg currentRound toe als prop
+  currentRound: number;
 }
 
 const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
@@ -33,19 +31,23 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     name: string;
   } | null>(null);
 
-  const vaultWallet = new PublicKey(import.meta.env.VITE_VAULT_WALLET);
-  const teamWallet = new PublicKey(import.meta.env.VITE_TEAM_WALLET);
+  const vaultWalletKey = import.meta.env.VITE_VAULT_WALLET;
+  const teamWalletKey = import.meta.env.VITE_TEAM_WALLET;
+
+  if (!vaultWalletKey || !teamWalletKey) {
+    throw new Error(
+      "❌ Environment variables VITE_VAULT_WALLET or VITE_TEAM_WALLET are missing."
+    );
+  }
+
+  const vaultWallet = new PublicKey(vaultWalletKey);
+  const teamWallet = new PublicKey(teamWalletKey);
   const connection = new Connection(import.meta.env.VITE_RPC_URL, "confirmed");
 
   // ✅ **Haal de meme op die de gebruiker in ronde 1 heeft gekozen**
   useEffect(() => {
     const fetchParticipantMeme = async () => {
       if (!publicKey || !raceId) return;
-      console.log(
-        "[DEBUG] Fetching participant meme for",
-        raceId,
-        publicKey.toString()
-      );
 
       try {
         const response = await fetch(
@@ -53,7 +55,6 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
         );
         if (!response.ok) return;
         const data = await response.json();
-        console.log("[DEBUG] Participant meme:", data);
         setUserMeme(data.memeId);
       } catch (error) {
         console.error("[API] ❌ Error fetching participant meme:", error);
@@ -67,13 +68,11 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
   useEffect(() => {
     const fetchMemeData = async () => {
       if (!userMeme) return;
-      console.log("[DEBUG] Fetching meme data for memeId:", userMeme);
 
       try {
         const response = await fetch(`${API_BASE_URL}/memes/${userMeme}`);
         if (!response.ok) return;
         const data = await response.json();
-        console.log("[DEBUG] Meme data received:", data);
         setMemeData(data);
       } catch (error) {
         console.error("[API] ❌ Error fetching meme data:", error);
@@ -83,13 +82,13 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     fetchMemeData();
   }, [userMeme]);
 
-  // ✅ **Check of de gebruiker op de juiste meme inzet**
-  const isCorrectMeme = userMeme !== null;
-  const isValidBoost = boostAmount && parseFloat(boostAmount) > 0;
+  // ✅ **Toon Boost Input alleen als er een geselecteerde meme is in ronde 2-6**
+  if (!userMeme || currentRound < 2 || currentRound > 6) {
+    return null;
+  }
 
-  // ✅ **Boost transactie afhandelen**
   const handleBoostTransaction = async () => {
-    if (!connected || !publicKey || !signTransaction || !isCorrectMeme) {
+    if (!connected || !publicKey || !signTransaction || !userMeme) {
       alert("Invalid boost attempt. Check your selected meme and try again.");
       return;
     }
@@ -127,8 +126,6 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
 
       console.log("✅ Boost transaction confirmed:", txid);
 
-      // ✅ **Log boost in backend**
-      console.log("[DEBUG] Sending boost data to backend...");
       const response = await fetch(`${API_BASE_URL}/boosts/`, {
         method: "POST",
         body: JSON.stringify({
@@ -136,7 +133,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
           walletAddress: publicKey.toString(),
           memeId: userMeme,
           amountSOL: parseFloat(boostAmount),
-          round: currentRound, // ✅ Gebruik currentRound
+          round: currentRound,
         }),
         headers: { "Content-Type": "application/json" },
       });
@@ -148,14 +145,15 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
       console.log("✅ Boost data successfully sent to backend.");
       alert("🎉 Boost successful!");
 
-      // ✅ **Force API refresh voor UI-update**
       await fetchBoostsData(raceId, currentRound);
 
       setBoostAmount("");
     } catch (error) {
       console.error("❌ Boost transaction failed:", error);
       alert(
-        `Transaction failed: ${error instanceof Error ? error.message : "Unknown error occurred"}`
+        `Transaction failed: ${
+          error instanceof Error ? error.message : "Unknown error occurred"
+        }`
       );
     } finally {
       setIsBoosting(false);
@@ -174,31 +172,23 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
           />
         </div>
       )}
-      {isCorrectMeme ? (
-        <>
-          <input
-            type="number"
-            value={boostAmount}
-            onChange={(e) => setBoostAmount(e.target.value)}
-            className="w-full px-3 py-2 text-center text-black bg-[#FFB877] border border-orange-500 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-600 placeholder-gray-700 shadow-sm"
-            placeholder="Enter SOL amount"
-            min="0.01"
-            step="0.01"
-            disabled={isBoosting}
-          />
-          <button
-            onClick={handleBoostTransaction}
-            className="w-full bg-green-500 text-white font-bold py-3 rounded-lg mt-3 hover:bg-green-600 transition shadow-lg"
-            disabled={!isValidBoost || isBoosting}
-          >
-            {isBoosting ? "Processing..." : "BOOST MEME!"}
-          </button>
-        </>
-      ) : (
-        <p className="text-red-400 text-sm text-center mt-2">
-          You can only boost your selected meme!
-        </p>
-      )}
+      <input
+        type="number"
+        value={boostAmount}
+        onChange={(e) => setBoostAmount(e.target.value)}
+        className="w-full px-3 py-2 text-center text-black bg-[#FFB877] border border-orange-500 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-600 placeholder-gray-700 shadow-sm"
+        placeholder="Enter SOL amount"
+        min="0.01"
+        step="0.01"
+        disabled={isBoosting}
+      />
+      <button
+        onClick={handleBoostTransaction}
+        className="w-full bg-green-500 text-white font-bold py-3 rounded-lg mt-3 hover:bg-green-600 transition shadow-lg"
+        disabled={!boostAmount || parseFloat(boostAmount) <= 0 || isBoosting}
+      >
+        {isBoosting ? "Processing..." : "BOOST MEME!"}
+      </button>
     </div>
   );
 };

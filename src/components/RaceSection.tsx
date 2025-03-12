@@ -26,13 +26,16 @@ const RaceSection = () => {
     }
   }, [initialized, refreshRaceData]);
 
-  // ✅ Controleer of race correct naar WinnerDisplay schakelt wanneer deze is afgelopen
+  // ✅ **Schakel naar WinnerDisplay als de race is afgelopen of null is**
   useEffect(() => {
-    if (!race || race.status === "closed" || race?.currentRound >= 7) {
-      console.log("[INFO] 🏁 Race afgelopen. WinnerDisplay tonen...");
+    if (!race || race.status === "closed") {
+      console.log("[INFO] 🏁 Geen actieve race. WinnerDisplay tonen...");
       setShowWinner(true);
       refreshWinnerData();
-      refreshRaceData(); // ✅ Forceer race refresh bij afsluiting
+      if (!race) {
+        console.log("[INFO] 🔄 Race is null, opnieuw race data ophalen...");
+        refreshRaceData(); // ✅ Forceer race refresh als race null is
+      }
     } else {
       setShowWinner(false);
     }
@@ -86,7 +89,7 @@ const RaceSection = () => {
                   memes={race.memes}
                   raceId={race?.raceId ?? ""}
                   currentRound={race?.currentRound ?? 0}
-                  selectedMeme={selectedMeme ?? ""} // ✅ Voeg selectedMeme toe aan de MemeProgressProps interface
+                  selectedMeme={selectedMeme ?? ""}
                 />
                 <BoostMemeInput
                   raceId={race?.raceId ?? ""}

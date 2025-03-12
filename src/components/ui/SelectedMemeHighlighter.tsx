@@ -18,16 +18,33 @@ const SelectedMemeHighlighter: React.FC<SelectedMemeHighlighterProps> = ({
 
   useEffect(() => {
     const fetchSelectedMeme = async () => {
-      if (!publicKey || !raceId) return;
+      if (!publicKey || !raceId) {
+        console.warn("[DEBUG] ❌ Missing publicKey or raceId, skipping fetch");
+        return;
+      }
 
       try {
+        console.log(
+          `[DEBUG] 🔄 Fetching selected meme for wallet: ${publicKey.toString()} in race: ${raceId}`
+        );
+
         const response = await fetch(
           `${API_BASE_URL}/participants/check/${raceId}/${publicKey.toString()}`
         );
-        if (!response.ok) return;
+
+        if (!response.ok) {
+          console.warn("[API] ⚠️ No meme found for this user.");
+          return;
+        }
 
         const data = await response.json();
-        setSelectedMeme(data.memeId);
+        console.log("[DEBUG] ✅ Selected meme data:", data);
+
+        if (data.memeId) {
+          setSelectedMeme(data.memeId);
+        } else {
+          console.warn("[DEBUG] ❌ No memeId found in API response.");
+        }
       } catch (error) {
         console.error("[API] ❌ Error fetching selected meme:", error);
       }
