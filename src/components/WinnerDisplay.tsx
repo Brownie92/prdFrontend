@@ -41,7 +41,6 @@ const WinnerDisplay: React.FC<WinnerProps> = ({ winner }) => {
         Won on: {new Date(winner.createdAt).toLocaleDateString()}
       </p>
 
-      {/* ✅ `SolVault` heeft geen props nodig, haalt zelf de juiste waarde op */}
       <SolVault />
     </div>
   );

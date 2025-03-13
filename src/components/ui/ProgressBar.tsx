@@ -11,12 +11,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 }) => {
   return (
     <div className="flex-1 bg-gray-300 rounded-full h-6 relative overflow-hidden">
-      {/* Algemene progressie */}
+      {/* General progress */}
       <div
         className="bg-green-400 h-6 rounded-full transition-all duration-500"
         style={{ width: `${progress}%` }}
       ></div>
-      {/* Boost progress */}
       {boostProgress > 0 && (
         <div
           className="bg-purple-500 h-6 rounded-full absolute left-0 transition-all duration-500"

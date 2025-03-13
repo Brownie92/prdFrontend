@@ -35,7 +35,6 @@ const useRaceWebSocket = (initialRace: Race | null) => {
   const [wsBoosts, setWsBoosts] = useState<{ [key: string]: number }>({});
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
-    onOpen: () => console.log("[WS] ✅ WebSocket Connected"),
     shouldReconnect: () => true,
   });
 
@@ -60,22 +59,17 @@ const useRaceWebSocket = (initialRace: Race | null) => {
 
     switch (message.event) {
       case "connection":
-        console.log("🔗 [WS] Connection established:", message.data);
         break;
 
       case "raceUpdate":
-        console.log("🔄 [WS] Updating race data:", message.data);
         setRace(message.data);
         break;
 
       case "raceCreated":
-        console.log("🚀 [WS] New race created, updating UI...", message.data);
         setRace(message.data);
         break;
 
       case "boostUpdate":
-        console.log("🚀 [WS] Boost Update ontvangen:", JSON.stringify(message.data, null, 2));
-
         setRace((prevRace) => {
           if (!prevRace) return prevRace;
 
@@ -99,25 +93,21 @@ const useRaceWebSocket = (initialRace: Race | null) => {
             return acc;
           }, {});
 
-          console.log("[WS] ✅ WebSocket Boost state bijgewerkt:", newBoosts);
           return newBoosts;
         });
 
         break;
 
       case "vaultUpdate":
-        console.log("💰 [WS] Vault Update received:", message.data);
         setVault(message.data);
         break;
 
       case "winnerUpdate":
-        console.log("🏆 [WS] Winner Update received:", message.data);
         setRace(null);
         setVault(null);
         break;
 
       case "raceClosed":
-        console.log("🏁 [WS] Race closed, switching to winner view...");
         setRace(null);
         setVault(null);
         break;
@@ -130,14 +120,6 @@ const useRaceWebSocket = (initialRace: Race | null) => {
 
   useEffect(() => {
     if (race?.currentRound) {
-      console.log("[WS] 🔄 Nieuwe ronde gedetecteerd, reset WebSocket boosts...");
-      setWsBoosts({});
-    }
-  }, [race?.currentRound]);
-
-  useEffect(() => {
-    if (race?.currentRound) {
-      console.log("[WS] 🔄 Nieuwe ronde gedetecteerd, reset WebSocket boosts...");
       setWsBoosts({});
     }
   }, [race?.currentRound]);

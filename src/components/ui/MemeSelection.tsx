@@ -18,8 +18,8 @@ interface MemeSelectionProps {
   raceId: string;
 }
 
-const API_RACE_URL = `${import.meta.env.VITE_API_BASE_URL}/races/current`;
-const API_CHECK_PARTICIPANT = `${import.meta.env.VITE_API_BASE_URL}/participants/check`;
+const API_RACE_URL = `${import.meta.env.VITE_API_BASE_URL}${import.meta.env.VITE_API_RACE_CURRENT}`;
+const API_CHECK_PARTICIPANT = `${import.meta.env.VITE_API_BASE_URL}${import.meta.env.VITE_API_PARTICIPANT_CHECK}`;
 
 const MemeSelection: React.FC<MemeSelectionProps> = ({
   selectedMeme,
@@ -38,17 +38,16 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
       try {
         setLoading(true);
         const response = await fetch(API_RACE_URL);
-        if (!response.ok) throw new Error("Race niet gevonden");
+        if (!response.ok) throw new Error("Race not found");
         const data = await response.json();
 
         if (!Array.isArray(data.memes)) {
-          throw new Error("Ongeldige memes data ontvangen.");
+          throw new Error("Invalid memes data received.");
         }
 
         setMemes(data.memes);
       } catch (error) {
-        console.error("[API] ❌ Fout bij ophalen memes:", error);
-        setError("Fout bij laden van memes. Probeer opnieuw.");
+        setError("Error loading memes. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -57,7 +56,6 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
     fetchRaceData();
   }, []);
 
-  // ✅ **Check of deze wallet al een participant is**
   useEffect(() => {
     if (connected && publicKey && raceId) {
       const checkExistingParticipant = async () => {
@@ -68,14 +66,11 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
           const data = await response.json();
 
           if (data.exists) {
-            console.log("✅ Meme already selected:", data.memeId);
             setSelectedMeme(data.memeId);
-            setHasConfirmedMeme(true); // ✅ Voorkomt dat de knop blijft verschijnen
-          } else {
-            console.log("🔄 No previous selection found.");
+            setHasConfirmedMeme(true); // Prevents the button from remaining visible
           }
         } catch (error) {
-          console.error("❌ Error checking participant:", error);
+          console.error("Error checking participant:", error);
         }
       };
 
@@ -84,7 +79,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
   }, [connected, publicKey, raceId]);
 
   if (loading)
-    return <p className="text-center text-white">⏳ Memes laden...</p>;
+    return <p className="text-center text-white">⏳ Loading memes...</p>;
   if (error) return <p className="text-center text-red-500">{error}</p>;
 
   return (
@@ -121,7 +116,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
           selectedMeme={selectedMeme}
           setHasConfirmedMeme={setHasConfirmedMeme}
           raceId={raceId}
-          hasConfirmedMeme={hasConfirmedMeme} // ✅ Nieuwe prop toegevoegd
+          hasConfirmedMeme={hasConfirmedMeme}
         />
       )}
     </div>

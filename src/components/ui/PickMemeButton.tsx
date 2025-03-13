@@ -6,27 +6,28 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 
+const rpcUrl = import.meta.env.VITE_RPC_URL;
+const participationFee =
+  parseFloat(import.meta.env.VITE_PARTICIPATION_FEE_SOL) * 1e9;
+const teamFee = parseFloat(import.meta.env.VITE_TEAM_FEE_SOL) * 1e9;
+
 const PickMemeButton = ({
   selectedMeme,
   raceId,
   setHasConfirmedMeme,
-  hasConfirmedMeme, // ✅ Nieuwe prop
+  hasConfirmedMeme,
 }: {
   selectedMeme: string | null;
   raceId: string;
   setHasConfirmedMeme: (confirmed: boolean) => void;
-  hasConfirmedMeme: boolean; // ✅ Nieuwe prop
+  hasConfirmedMeme: boolean;
 }) => {
   const { publicKey, signTransaction, connected } = useWallet();
 
   const vaultWallet = new PublicKey(import.meta.env.VITE_VAULT_WALLET);
   const teamWallet = new PublicKey(import.meta.env.VITE_TEAM_WALLET);
-  const connection = new Connection(
-    "https://api.devnet.solana.com",
-    "confirmed"
-  );
+  const connection = new Connection(rpcUrl, "confirmed");
 
-  // ✅ **Transactie afhandelen**
   const handleTransaction = async () => {
     if (!connected || !publicKey || !signTransaction || !selectedMeme) {
       alert("Please select a meme and connect your wallet.");
@@ -43,7 +44,7 @@ const PickMemeButton = ({
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: vaultWallet,
-          lamports: 0.2 * 1e9,
+          lamports: participationFee,
         })
       );
 
@@ -51,7 +52,7 @@ const PickMemeButton = ({
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: teamWallet,
-          lamports: 0.01 * 1e9,
+          lamports: teamFee,
         })
       );
 
@@ -60,8 +61,6 @@ const PickMemeButton = ({
         signedTransaction.serialize()
       );
       await connection.confirmTransaction(txid, "confirmed");
-
-      console.log("✅ Transaction confirmed:", txid);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/participants/`,
@@ -81,11 +80,9 @@ const PickMemeButton = ({
         throw new Error(`Backend error: ${response.statusText}`);
       }
 
-      console.log("✅ Participant data successfully sent to backend.");
       setHasConfirmedMeme(true);
       alert("🎉 Transaction successful!");
     } catch (error) {
-      console.error("❌ Transaction failed:", error);
       alert(
         `Transaction failed: ${error instanceof Error ? error.message : "Unknown error occurred"}`
       );
@@ -94,7 +91,7 @@ const PickMemeButton = ({
 
   return (
     <>
-      {!hasConfirmedMeme && ( // ✅ Knop verdwijnt zodra een meme is bevestigd
+      {!hasConfirmedMeme && (
         <button
           onClick={handleTransaction}
           className="w-full bg-green-400 text-white font-bold py-3 rounded-lg mt-4 hover:bg-green-500 transition shadow-md"

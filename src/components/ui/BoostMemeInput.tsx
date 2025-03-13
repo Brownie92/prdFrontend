@@ -8,8 +8,7 @@ import {
 } from "@solana/web3.js";
 import useRaceData from "../../hooks/useRaceData";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface BoostMemeInputProps {
   raceId: string;
@@ -42,9 +41,11 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
 
   const vaultWallet = new PublicKey(vaultWalletKey);
   const teamWallet = new PublicKey(teamWalletKey);
+  const teamFeeSOL =
+    parseFloat(import.meta.env.VITE_TEAM_FEE_SOL || "0.01") * 1e9;
   const connection = new Connection(import.meta.env.VITE_RPC_URL, "confirmed");
 
-  // ✅ **Haal de meme op die de gebruiker in ronde 1 heeft gekozen**
+  // Fetch the meme chosen by the user in round 1
   useEffect(() => {
     const fetchParticipantMeme = async () => {
       if (!publicKey || !raceId) return;
@@ -64,7 +65,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     fetchParticipantMeme();
   }, [publicKey, raceId]);
 
-  // ✅ **Haal meme details op**
+  // Fetch meme details
   useEffect(() => {
     const fetchMemeData = async () => {
       if (!userMeme) return;
@@ -82,7 +83,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     fetchMemeData();
   }, [userMeme]);
 
-  // ✅ **Toon Boost Input alleen als er een geselecteerde meme is in ronde 2-6**
+  // Display Boost Input only if a meme is selected in rounds 2-6
   if (!userMeme || currentRound < 2 || currentRound > 6) {
     return null;
   }
@@ -114,7 +115,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: teamWallet,
-          lamports: 0.01 * 1e9,
+          lamports: teamFeeSOL,
         })
       );
 
@@ -123,8 +124,6 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
         signedTransaction.serialize()
       );
       await connection.confirmTransaction(txid, "confirmed");
-
-      console.log("✅ Boost transaction confirmed:", txid);
 
       const response = await fetch(`${API_BASE_URL}/boosts/`, {
         method: "POST",
@@ -142,7 +141,6 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
         throw new Error(`Backend error: ${response.statusText}`);
       }
 
-      console.log("✅ Boost data successfully sent to backend.");
       alert("🎉 Boost successful!");
 
       await fetchBoostsData(raceId, currentRound);

@@ -8,43 +8,27 @@ const SolVault = () => {
 
   const [totalVault, setTotalVault] = useState<number>(0);
 
-  // ✅ **Vault updaten via API**
+  // Update vault from API response
   useEffect(() => {
     if (vault?.totalSol !== undefined) {
-      console.log(
-        `[SolVault] 🔄 Setting vault from API: ${vault.totalSol} SOL`
-      );
       setTotalVault(vault.totalSol || 0);
     }
   }, [vault]);
 
-  // ✅ **Vault live updaten via WebSocket**
+  // Update vault in real-time via WebSocket
   useEffect(() => {
     if (wsVault?.totalSol !== undefined) {
-      console.log(
-        `[SolVault] 🔄 WebSocket vault update: ${wsVault.totalSol} SOL`
-      );
       setTotalVault(wsVault.totalSol || 0);
     }
   }, [wsVault]);
 
-  // ✅ **Vault ophalen bij eerste render**
+  // Fetch vault data on initial render
   useEffect(() => {
     if (race?.status === "active" && race?.raceId) {
-      console.log(
-        `[SolVault] 🔄 Fetching Vault for active race: ${race.raceId}`
-      );
       fetchVaultData(race.raceId);
     } else {
-      console.log(
-        "[SolVault] 🔄 No active race, fetching latest closed vault."
-      );
       fetchLatestVaultData().then((latestVault) => {
-        console.log("[SolVault] ✅ Latest Vault fetched:", latestVault);
         if (latestVault?.totalSol !== undefined) {
-          console.log(
-            `[SolVault] 🔄 Setting state: ${latestVault.totalSol} SOL`
-          );
           setTotalVault(latestVault.totalSol);
         }
       });

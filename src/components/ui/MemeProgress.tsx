@@ -16,7 +16,7 @@ interface MemeProgressProps {
   memes: Meme[];
   raceId: string;
   currentRound: number;
-  selectedMeme: string; // Added selectedMeme
+  selectedMeme: string;
 }
 
 const MemeProgress: React.FC<MemeProgressProps> = ({
@@ -29,12 +29,14 @@ const MemeProgress: React.FC<MemeProgressProps> = ({
     Map<string, number>
   >(new Map());
 
+  // Fetch boost data for the current round
   useEffect(() => {
     if (raceId && currentRound > 0) {
       fetchBoostsData(raceId, currentRound);
     }
   }, [raceId, currentRound, fetchBoostsData]);
 
+  // Map boost data to a structure for easy access
   useEffect(() => {
     setCurrentRoundBoosts(
       new Map(

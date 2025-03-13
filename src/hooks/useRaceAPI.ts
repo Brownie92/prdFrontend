@@ -119,47 +119,40 @@ const useRaceAPI = () => {
     if (!raceId || round <= 0) return {};
 
     try {
-        console.log(`[API] 📡 Fetching boosts for race ${raceId}, round ${round}`);
-        const response = await fetch(`${API_BOOSTS_URL}/${raceId}/${round}`);
+      const response = await fetch(`${API_BOOSTS_URL}/${raceId}/${round}`);
 
-        if (!response.ok) {
-            console.warn(`[API] ⚠️ No boosts found for race ${raceId}, round ${round}`);
-            return {};
-        }
-
-        const data = await response.json();
-        console.log("[DEBUG] 📡 API Boosts response:", data);
-
-        if (!data || !Array.isArray(data.boosts) || data.boosts.length === 0) {
-            console.warn("[API] ⚠️ No valid boosts found in response.");
-            return {};
-        }
-
-        const formattedBoosts = data.boosts.reduce(
-          (acc: Record<string, number>, boost: { memeId: string; totalSol: number }) => {
-            acc[boost.memeId] = boost.totalSol;
-            return acc;
-          },
-          {} as Record<string, number>
-        );
-
-        console.log("[INFO] ✅ Processed Boosts Data:", formattedBoosts);
-        setApiBoosts(formattedBoosts);
-        return formattedBoosts;
-    } catch (error) {
-        console.error("[API] ❌ Error fetching boosts:", error);
+      if (!response.ok) {
         return {};
+      }
+
+      const data = await response.json();
+
+      if (!data || !Array.isArray(data.boosts) || data.boosts.length === 0) {
+        return {};
+      }
+
+      const formattedBoosts = data.boosts.reduce(
+        (acc: Record<string, number>, boost: { memeId: string; totalSol: number }) => {
+          acc[boost.memeId] = boost.totalSol;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+      setApiBoosts(formattedBoosts);
+      return formattedBoosts;
+    } catch (error) {
+      console.error("[API] ❌ Error fetching boosts:", error);
+      return {};
     }
-}, []);
+  }, []);
 
   const fetchLatestActiveVaultData = useCallback(async () => {
     try {
-      console.log("[API] 🔍 Fetching latest active race vault...");
       const response = await fetch(`${API_VAULT_URL}/active`);
       if (!response.ok) return null;
   
       const data: Vault = await response.json();
-      console.log("[API] ✅ Latest Active Vault data retrieved:", data);
       setVault(data);
       return data;
     } catch (error) {
@@ -193,7 +186,7 @@ const useRaceAPI = () => {
     fetchWinnerData,
     fetchVaultData,
     fetchLatestVaultData,
-    fetchLatestActiveVaultData, // ✅ Voeg deze regel toe
+    fetchLatestActiveVaultData,
     fetchBoostsData,
   };
 };

@@ -14,12 +14,12 @@ const PreviousRaces = () => {
     const fetchWinners = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/winners`
+          `${import.meta.env.VITE_API_BASE_URL}${import.meta.env.VITE_API_WINNERS}`
         );
         if (!response.ok) throw new Error("Failed to fetch winners");
         const data: Winner[] = await response.json();
 
-        // ✅ Sorteer en neem alleen de laatste 10 winnaars
+        // Sort and keep only the last 10 winners
         const sortedWinners = data
           .sort(
             (a, b) =>
@@ -29,7 +29,7 @@ const PreviousRaces = () => {
 
         setWinners(sortedWinners);
       } catch (error) {
-        console.error("❌ Error fetching winners:", error);
+        // Error fetching winners
       }
     };
 

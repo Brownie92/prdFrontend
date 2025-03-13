@@ -11,9 +11,9 @@ const BoostIcon: React.FC<BoostIconProps> = ({ boostAmount, rankIndex }) => {
   let icon = "";
 
   if (rankIndex !== null && rankIndex in rankingIcons) {
-    icon = rankingIcons[rankIndex]; // 🥇🥈🥉 voor de top 3
+    icon = rankingIcons[rankIndex];
   } else if (boostAmount > 0) {
-    icon = "🔥"; // 🔥 voor andere boosts
+    icon = "🔥";
   }
 
   return <span className="ml-1 text-xl w-6 flex justify-center">{icon}</span>;

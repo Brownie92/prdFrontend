@@ -18,45 +18,28 @@ const SelectedMemeHighlighter: React.FC<SelectedMemeHighlighterProps> = ({
 
   useEffect(() => {
     const fetchSelectedMeme = async () => {
-      if (!publicKey || !raceId) {
-        console.warn("[DEBUG] ❌ Missing publicKey or raceId, skipping fetch");
-        return;
-      }
+      if (!publicKey || !raceId) return;
 
       try {
-        console.log(
-          `[DEBUG] 🔄 Fetching selected meme for wallet: ${publicKey.toString()} in race: ${raceId}`
-        );
-
         const response = await fetch(
-          `${API_BASE_URL}/participants/check/${raceId}/${publicKey.toString()}`
+          `${API_BASE_URL}${import.meta.env.VITE_API_PARTICIPANT_CHECK}/${raceId}/${publicKey.toString()}`
         );
-
-        if (!response.ok) {
-          console.warn("[API] ⚠️ No meme found for this user.");
-          return;
-        }
+        if (!response.ok) return;
 
         const data = await response.json();
-        console.log("[DEBUG] ✅ Selected meme data:", data);
-
-        if (data.memeId) {
-          setSelectedMeme(data.memeId);
-        } else {
-          console.warn("[DEBUG] ❌ No memeId found in API response.");
-        }
+        setSelectedMeme(data.memeId);
       } catch (error) {
-        console.error("[API] ❌ Error fetching selected meme:", error);
+        console.error("Error fetching selected meme:", error);
       }
     };
 
     fetchSelectedMeme();
   }, [publicKey, raceId]);
 
-  // ✅ Controleer of de huidige meme de geselecteerde meme is
-  const isSelected = selectedMeme === memeId;
-
-  return isSelected ? "border-green-400 border-4 shadow-lg relative" : "";
+  // Check if the current meme is the selected one
+  return selectedMeme === memeId
+    ? "border-green-400 border-4 shadow-lg relative"
+    : "";
 };
 
 export default SelectedMemeHighlighter;

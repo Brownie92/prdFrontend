@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import useRaceAPI from "./useRaceAPI";
 import useRaceWebSocket from "./useRaceWebSocket";
-import { Race } from "./useRaceWebSocket"; // ✅ Zorg dat Race correct wordt geïmporteerd
+import { Race } from "./useRaceWebSocket";
 
 const useRaceData = () => {
   const {
     race: apiRace,
-    vault: apiVault, // ✅ Voeg Vault toe uit API
+    vault: apiVault,
     apiBoosts,
     fetchRaceData,
     fetchWinnerData,
-    fetchVaultData, // ✅ Vault ophalen indien nodig
-    fetchBoostsData, // ✅ Zorg dat boosts correct worden opgehaald
+    fetchVaultData,
+    fetchBoostsData,
     winner,
     loading,
     error,
@@ -19,7 +19,7 @@ const useRaceData = () => {
 
   const {
     race: wsRace,
-    vault: wsVault, // ✅ Voeg Vault toe uit WebSocket
+    vault: wsVault,
     wsBoosts,
     sendJsonMessage,
     readyState,
@@ -29,17 +29,14 @@ const useRaceData = () => {
   const [countdown, setCountdown] = useState<string>("00:00");
   const [boosts, setBoosts] = useState<{ [key: string]: number }>({});
 
-  // ✅ Gebruik WebSocket data als die er is, anders API-data
   const race: Race | null = wsRace ?? apiRace;
   const vault = wsVault ?? apiVault;
 
-  // ✅ Debug logs voor race en vault updates
   useEffect(() => {
     console.log("[DEBUG] 🏁 Current Race:", race);
     console.log("[DEBUG] 💰 Current Vault:", vault);
   }, [race, vault]);
 
-  // ✅ **Check of er een actieve race is en haal zo nodig winnaar op**
   useEffect(() => {
     if (!race || race.status === "closed") {
       console.log("[INFO] 🏁 No active race or race closed, fetching latest winner...");
@@ -49,7 +46,6 @@ const useRaceData = () => {
     }
   }, [race?.status, race?.raceId, race?.currentRound]);
 
-  // ✅ **Vault ophalen bij nieuwe race**
   useEffect(() => {
     if (race?.raceId) {
       console.log("[INFO] 💰 Fetching vault for race:", race.raceId);
@@ -57,14 +53,12 @@ const useRaceData = () => {
     }
   }, [race?.raceId]);
 
-  // ✅ **Update UI als een nieuwe race start**
   useEffect(() => {
     if (race?.currentRound === 1) {
       console.log("[INFO] 🎉 New race detected! Updating UI to round 1.");
     }
   }, [race?.currentRound]);
 
-  // ✅ **Countdown timer voor de ronde**
   useEffect(() => {
     if (!race?.roundEndTime) return;
 
@@ -82,30 +76,27 @@ const useRaceData = () => {
     return () => clearInterval(interval);
   }, [race?.roundEndTime]);
 
-  // ✅ **Combineer API- en WebSocket-boosts**
   useEffect(() => {
     const combinedBoosts = wsBoosts && Object.keys(wsBoosts).length ? wsBoosts : apiBoosts;
     setBoosts(combinedBoosts);
     console.log("[INFO] 🔄 Combined boosts updated:", combinedBoosts);
   }, [apiBoosts, wsBoosts]);
 
-  // ✅ **Zorg ervoor dat boosts worden opgehaald bij een nieuwe ronde**
   useEffect(() => {
     if (race?.raceId && race.currentRound > 0) {
-      console.log(`[INFO] 📡 Boosts ophalen voor nieuwe ronde ${race.currentRound}`);
+      console.log(`[INFO] 📡 Fetching boosts for new round ${race.currentRound}`);
       
       fetchBoostsData(race.raceId, race.currentRound).then((newBoosts) => {
-        console.log("[INFO] ✅ Boosts geüpdatet voor nieuwe ronde:", newBoosts);
-        setBoosts(newBoosts); // ✅ Correcte update
+        console.log("[INFO] ✅ Boosts updated for new round:", newBoosts);
+        setBoosts(newBoosts);
       });
     }
   }, [race?.raceId, race?.currentRound, fetchBoostsData]);
 
-  // ✅ Reset boosts bij een nieuwe ronde
   useEffect(() => {
     if (race?.currentRound) {
-      console.log(`[INFO] 🔄 Nieuwe ronde ${race.currentRound} gedetecteerd, resetting boosts...`);
-      setBoosts({}); // Reset de gecombineerde boosts correct
+      console.log(`[INFO] 🔄 New round ${race.currentRound} detected, resetting boosts...`);
+      setBoosts({});
     }
   }, [race?.currentRound]);
 
@@ -116,11 +107,11 @@ const useRaceData = () => {
     countdown,
     loading,
     error,
-    boosts, // ✅ Gecombineerde boost-data nu beschikbaar!
+    boosts,
     refreshRaceData: fetchRaceData,
     refreshWinnerData: fetchWinnerData,
     refreshVaultData: fetchVaultData,
-    fetchBoostsData,  // ✅ Fix: deze moet worden doorgegeven
+    fetchBoostsData,
     sendJsonMessage,
     readyState,
     webSocketStatus,

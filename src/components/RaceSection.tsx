@@ -17,38 +17,29 @@ const RaceSection = () => {
   const [showWinner, setShowWinner] = useState<boolean>(false);
   const [initialized, setInitialized] = useState<boolean>(false);
 
-  // ✅ **Race data ophalen bij eerste render**
+  // ✅ **Fetch race data on initial render**
   useEffect(() => {
     if (!initialized) {
-      console.log("[INFO] Initializing race data...");
       refreshRaceData();
       setInitialized(true);
     }
   }, [initialized, refreshRaceData]);
 
-  // ✅ **Schakel naar WinnerDisplay als de race is afgelopen of null is**
+  // ✅ **Switch to WinnerDisplay if the race is finished or null**
   useEffect(() => {
     if (!race || race.status === "closed") {
-      console.log("[INFO] 🏁 Geen actieve race. WinnerDisplay tonen...");
       setShowWinner(true);
       refreshWinnerData();
       if (!race) {
-        console.log("[INFO] 🔄 Race is null, opnieuw race data ophalen...");
-        refreshRaceData(); // ✅ Forceer race refresh als race null is
+        refreshRaceData(); // ✅ Force race refresh if race is null
       }
     } else {
       setShowWinner(false);
     }
   }, [race?.status, race?.currentRound, refreshWinnerData, refreshRaceData]);
 
-  // ✅ **Debugging logs voor extra controle**
-  useEffect(() => {
-    console.log("[DEBUG] 🏁 Current Race:", race);
-    console.log("[DEBUG] Selected Meme:", selectedMeme);
-    console.log("[DEBUG] Has Confirmed Meme:", hasConfirmedMeme);
-    console.log("[DEBUG] Current Round:", race?.currentRound);
-    console.log("[DEBUG] Show Winner:", showWinner);
-  }, [
+  // ✅ **Debugging logs for additional verification**
+  useEffect(() => {}, [
     connected,
     race,
     selectedMeme,
@@ -68,7 +59,7 @@ const RaceSection = () => {
             countdown={countdown}
           />
 
-          {/* ✅ **MemeSelection wordt alleen in ronde 1 weergegeven** */}
+          {/* ✅ **MemeSelection is displayed only in round 1** */}
           {race?.currentRound === 1 && (
             <MemeSelection
               selectedMeme={selectedMeme}
@@ -79,7 +70,7 @@ const RaceSection = () => {
             />
           )}
 
-          {/* ✅ **MemeProgress en BoostMemeInput worden alleen in ronde 2-6 weergegeven** */}
+          {/* ✅ **MemeProgress and BoostMemeInput are displayed only in rounds 2-6** */}
           {race?.currentRound &&
             race.currentRound > 1 &&
             race.currentRound < 7 &&
