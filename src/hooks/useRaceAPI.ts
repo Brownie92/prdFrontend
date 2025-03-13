@@ -56,7 +56,7 @@ const useRaceAPI = () => {
       setWinner(data);
       return data;
     } catch (error) {
-      console.error("[API] ❌ Error fetching winner:", error);
+      //console.error("[API] ❌ Error fetching winner:", error);
       return null;
     }
   }, [race]);
@@ -72,7 +72,7 @@ const useRaceAPI = () => {
       setVault(data);
       return data;
     } catch (error) {
-      console.error("[API] ❌ Error fetching vault:", error);
+      //console.error("[API] ❌ Error fetching vault:", error);
       setVault(null);
       return null;
     }
@@ -87,7 +87,7 @@ const useRaceAPI = () => {
       setLatestVault(data);
       return data;
     } catch (error) {
-      console.error("[API] ❌ Error fetching latest vault:", error);
+      //console.error("[API] ❌ Error fetching latest vault:", error);
       setLatestVault(null);
       return null;
     }
@@ -108,7 +108,7 @@ const useRaceAPI = () => {
       setWinner(null);
       await fetchVaultData(data.raceId);
     } catch (error) {
-      console.error("[API] ❌ Error fetching race:", error);
+      //console.error("[API] ❌ Error fetching race:", error);
       setError("Race not found.");
     } finally {
       setLoading(false);
@@ -142,7 +142,7 @@ const useRaceAPI = () => {
       setApiBoosts(formattedBoosts);
       return formattedBoosts;
     } catch (error) {
-      console.error("[API] ❌ Error fetching boosts:", error);
+      //console.error("[API] ❌ Error fetching boosts:", error);
       return {};
     }
   }, []);
@@ -156,7 +156,7 @@ const useRaceAPI = () => {
       setVault(data);
       return data;
     } catch (error) {
-      console.error("[API] ❌ Error fetching latest active vault:", error);
+      //console.error("[API] ❌ Error fetching latest active vault:", error);
       setVault(null);
       return null;
     }

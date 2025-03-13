@@ -33,29 +33,27 @@ const useRaceData = () => {
   const vault = wsVault ?? apiVault;
 
   useEffect(() => {
-    console.log("[DEBUG] 🏁 Current Race:", race);
-    console.log("[DEBUG] 💰 Current Vault:", vault);
   }, [race, vault]);
 
   useEffect(() => {
     if (!race || race.status === "closed") {
-      console.log("[INFO] 🏁 No active race or race closed, fetching latest winner...");
+      //console.log("[INFO] 🏁 No active race or race closed, fetching latest winner...");
       fetchWinnerData();
     } else {
-      console.log("[INFO] 🚀 Active race detected, skipping winner fetch.");
+      //console.log("[INFO] 🚀 Active race detected, skipping winner fetch.");
     }
   }, [race?.status, race?.raceId, race?.currentRound]);
 
   useEffect(() => {
     if (race?.raceId) {
-      console.log("[INFO] 💰 Fetching vault for race:", race.raceId);
+      //console.log("[INFO] 💰 Fetching vault for race:", race.raceId);
       fetchVaultData(race.raceId);
     }
   }, [race?.raceId]);
 
   useEffect(() => {
     if (race?.currentRound === 1) {
-      console.log("[INFO] 🎉 New race detected! Updating UI to round 1.");
+      //console.log("[INFO] 🎉 New race detected! Updating UI to round 1.");
     }
   }, [race?.currentRound]);
 
@@ -79,15 +77,15 @@ const useRaceData = () => {
   useEffect(() => {
     const combinedBoosts = wsBoosts && Object.keys(wsBoosts).length ? wsBoosts : apiBoosts;
     setBoosts(combinedBoosts);
-    console.log("[INFO] 🔄 Combined boosts updated:", combinedBoosts);
+    //console.log("[INFO] 🔄 Combined boosts updated:", combinedBoosts);
   }, [apiBoosts, wsBoosts]);
 
   useEffect(() => {
     if (race?.raceId && race.currentRound > 0) {
-      console.log(`[INFO] 📡 Fetching boosts for new round ${race.currentRound}`);
+      //console.log(`[INFO] 📡 Fetching boosts for new round ${race.currentRound}`);
       
       fetchBoostsData(race.raceId, race.currentRound).then((newBoosts) => {
-        console.log("[INFO] ✅ Boosts updated for new round:", newBoosts);
+        //console.log("[INFO] ✅ Boosts updated for new round:", newBoosts);
         setBoosts(newBoosts);
       });
     }
@@ -95,7 +93,7 @@ const useRaceData = () => {
 
   useEffect(() => {
     if (race?.currentRound) {
-      console.log(`[INFO] 🔄 New round ${race.currentRound} detected, resetting boosts...`);
+      //console.log(`[INFO] 🔄 New round ${race.currentRound} detected, resetting boosts...`);
       setBoosts({});
     }
   }, [race?.currentRound]);
