@@ -32,6 +32,7 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
   const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchRaceData = async () => {
@@ -114,9 +115,17 @@ const MemeSelection: React.FC<MemeSelectionProps> = ({
       ) : (
         <PickMemeButton
           selectedMeme={selectedMeme}
-          setHasConfirmedMeme={setHasConfirmedMeme}
+          setHasConfirmedMeme={(confirmed) => {
+            setHasConfirmedMeme(confirmed);
+            if (confirmed) {
+              setIsButtonDisabled(true); // 🔹 Knop uitschakelen
+              setTimeout(() => {
+                setIsButtonDisabled(false); // 🔹 Knop na 10 sec weer inschakelen
+              }, 10000);
+            }
+          }}
           raceId={raceId}
-          hasConfirmedMeme={hasConfirmedMeme}
+          hasConfirmedMeme={hasConfirmedMeme || isButtonDisabled} // 🔹 Knop is disabled als bevestigd of in delay
         />
       )}
     </div>

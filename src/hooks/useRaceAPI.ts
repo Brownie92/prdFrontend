@@ -18,7 +18,7 @@ interface Meme {
 interface Race {
   raceId: string;
   currentRound: number;
-  roundEndTime?: string;
+  roundEndTime: string; // ✅ Ensure roundEndTime is always available
   status?: string;
   memes: Meme[];
 }
@@ -104,7 +104,7 @@ const useRaceAPI = () => {
       const data: Race = await response.json();
       if (!data.raceId) return;
 
-      setRace(data);
+      setRace(data); // ✅ Ensure `roundEndTime` is stored
       setWinner(null);
       await fetchVaultData(data.raceId);
     } catch (error) {

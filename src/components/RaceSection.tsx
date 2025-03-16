@@ -9,8 +9,7 @@ import BoostMemeInput from "./ui/BoostMemeInput";
 
 const RaceSection = () => {
   const { connected } = useWallet();
-  const { race, winner, countdown, refreshWinnerData, refreshRaceData } =
-    useRaceData();
+  const { race, winner, refreshWinnerData, refreshRaceData } = useRaceData();
 
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
   const [hasConfirmedMeme, setHasConfirmedMeme] = useState<boolean>(false);
@@ -56,7 +55,8 @@ const RaceSection = () => {
         <>
           <RaceStatus
             currentRound={race?.currentRound ?? 0}
-            countdown={countdown}
+            roundEndTime={race?.roundEndTime ?? null} // ✅ Geef de juiste roundEndTime door
+            status={race?.status ?? "waiting"}
           />
 
           {/* ✅ **MemeSelection is displayed only in round 1** */}

@@ -36,56 +36,56 @@ const useRaceData = () => {
   }, [race, vault]);
 
   useEffect(() => {
-    if (!race || race.status === "closed") {
-      //console.log("[INFO] 🏁 No active race or race closed, fetching latest winner...");
+    if (!race) return;
+
+    if (race.status === "closed") {
       fetchWinnerData();
-    } else {
-      //console.log("[INFO] 🚀 Active race detected, skipping winner fetch.");
+    } else if (race.status === "waiting") {
+      setCountdown("Gathering Legends...");
+    } else if (race.roundEndTime) {
+      const updateTimer = () => {
+        const now = Date.now();
+        const roundEnd = new Date(race.roundEndTime!).getTime();
+        const timeDiff = Math.max(0, roundEnd - now);
+        const hours = Math.floor((timeDiff / 1000 / 60 / 60) % 24);
+        const minutes = Math.floor((timeDiff / 1000 / 60) % 60);
+        const seconds = Math.floor((timeDiff / 1000) % 60);
+        setCountdown(
+          `${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        );
+
+        if (timeDiff <= 0) {
+          clearInterval(interval);
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
     }
-  }, [race?.status, race?.raceId, race?.currentRound]);
+  }, [race?.status, race?.roundEndTime]);
 
   useEffect(() => {
     if (race?.raceId) {
-      //console.log("[INFO] 💰 Fetching vault for race:", race.raceId);
       fetchVaultData(race.raceId);
     }
   }, [race?.raceId]);
 
   useEffect(() => {
     if (race?.currentRound === 1) {
-      //console.log("[INFO] 🎉 New race detected! Updating UI to round 1.");
     }
   }, [race?.currentRound]);
 
   useEffect(() => {
-    if (!race?.roundEndTime) return;
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const roundEnd = new Date(race.roundEndTime!).getTime();
-      const timeDiff = Math.max(0, roundEnd - now);
-      const minutes = Math.floor((timeDiff / 1000 / 60) % 60);
-      const seconds = Math.floor((timeDiff / 1000) % 60);
-      setCountdown(`${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [race?.roundEndTime]);
-
-  useEffect(() => {
     const combinedBoosts = wsBoosts && Object.keys(wsBoosts).length ? wsBoosts : apiBoosts;
     setBoosts(combinedBoosts);
-    //console.log("[INFO] 🔄 Combined boosts updated:", combinedBoosts);
   }, [apiBoosts, wsBoosts]);
 
   useEffect(() => {
     if (race?.raceId && race.currentRound > 0) {
-      //console.log(`[INFO] 📡 Fetching boosts for new round ${race.currentRound}`);
-      
       fetchBoostsData(race.raceId, race.currentRound).then((newBoosts) => {
-        //console.log("[INFO] ✅ Boosts updated for new round:", newBoosts);
         setBoosts(newBoosts);
       });
     }
@@ -93,7 +93,6 @@ const useRaceData = () => {
 
   useEffect(() => {
     if (race?.currentRound) {
-      //console.log(`[INFO] 🔄 New round ${race.currentRound} detected, resetting boosts...`);
       setBoosts({});
     }
   }, [race?.currentRound]);
