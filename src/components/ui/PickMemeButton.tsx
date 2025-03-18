@@ -22,14 +22,20 @@ const PickMemeButton = ({
   setHasConfirmedMeme: (confirmed: boolean) => void;
   hasConfirmedMeme: boolean;
 }) => {
-  const { publicKey, signTransaction, connected } = useWallet();
+  const { publicKey, signTransaction, connected, wallet } = useWallet();
 
   const vaultWallet = new PublicKey(import.meta.env.VITE_VAULT_WALLET);
   const teamWallet = new PublicKey(import.meta.env.VITE_TEAM_WALLET);
   const connection = new Connection(rpcUrl, "confirmed");
 
   const handleTransaction = async () => {
-    if (!connected || !publicKey || !signTransaction || !selectedMeme) {
+    if (
+      !connected ||
+      !publicKey ||
+      !signTransaction ||
+      !selectedMeme ||
+      !wallet
+    ) {
       alert("Please select a meme and connect your wallet.");
       return;
     }
@@ -56,9 +62,9 @@ const PickMemeButton = ({
         })
       );
 
-      const signedTransaction = await signTransaction(transaction);
-      const txid = await connection.sendRawTransaction(
-        signedTransaction.serialize()
+      const txid = await wallet?.adapter.sendTransaction(
+        transaction,
+        connection
       );
       await connection.confirmTransaction(txid, "confirmed");
 

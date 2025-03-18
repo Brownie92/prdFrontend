@@ -19,7 +19,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
   raceId,
   currentRound,
 }) => {
-  const { publicKey, signTransaction, connected } = useWallet();
+  const { publicKey, connected, wallet } = useWallet();
   const { fetchBoostsData } = useRaceData();
   const [boostAmount, setBoostAmount] = useState<string>("");
   const [isBoosting, setIsBoosting] = useState(false);
@@ -89,7 +89,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
   }
 
   const handleBoostTransaction = async () => {
-    if (!connected || !publicKey || !signTransaction || !userMeme) {
+    if (!connected || !publicKey || !wallet || !userMeme) {
       alert("Invalid boost attempt. Check your selected meme and try again.");
       return;
     }
@@ -119,9 +119,9 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
         })
       );
 
-      const signedTransaction = await signTransaction(transaction);
-      const txid = await connection.sendRawTransaction(
-        signedTransaction.serialize()
+      const txid = await wallet.adapter.sendTransaction(
+        transaction,
+        connection
       );
       await connection.confirmTransaction(txid, "confirmed");
 
