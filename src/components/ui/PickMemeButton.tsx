@@ -5,6 +5,7 @@ import {
   Transaction,
   SystemProgram,
 } from "@solana/web3.js";
+import { useState } from "react";
 
 const rpcUrl = import.meta.env.VITE_RPC_URL;
 const participationFee =
@@ -22,6 +23,7 @@ const PickMemeButton = ({
   setHasConfirmedMeme: (confirmed: boolean) => void;
   hasConfirmedMeme: boolean;
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const { publicKey, signTransaction, connected, wallet } = useWallet();
 
   const vaultWallet = new PublicKey(import.meta.env.VITE_VAULT_WALLET);
@@ -41,8 +43,22 @@ const PickMemeButton = ({
     }
 
     try {
+      setIsLoading(true);
+
+      // Check wallet balance
+      const walletBalance = await connection.getBalance(publicKey);
+      const requiredBalance = participationFee + teamFee + 0.000005 * 1e9; // Extra fee buffer
+
+      if (walletBalance < requiredBalance) {
+        alert(`Insufficient balance for this transaction`);
+        setIsLoading(false);
+        return;
+      }
+
       const transaction = new Transaction();
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash("confirmed");
+
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
 
@@ -62,11 +78,15 @@ const PickMemeButton = ({
         })
       );
 
-      const txid = await wallet?.adapter.sendTransaction(
+      const signature = await wallet.adapter.sendTransaction(
         transaction,
         connection
       );
-      await connection.confirmTransaction(txid, "confirmed");
+
+      await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        "confirmed"
+      );
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/participants/`,
@@ -89,9 +109,12 @@ const PickMemeButton = ({
       setHasConfirmedMeme(true);
       alert("🎉 Transaction successful!");
     } catch (error) {
+      console.error("Transaction error:", error);
       alert(
         `Transaction failed: ${error instanceof Error ? error.message : "Unknown error occurred"}`
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,9 +124,9 @@ const PickMemeButton = ({
         <button
           onClick={handleTransaction}
           className="w-full bg-green-400 text-white font-bold py-3 rounded-lg mt-4 hover:bg-green-500 transition shadow-md"
-          disabled={!selectedMeme}
+          disabled={isLoading || !selectedMeme}
         >
-          PICK YOUR MEME!
+          {isLoading ? "Processing..." : "PICK YOUR MEME!"}
         </button>
       )}
     </>

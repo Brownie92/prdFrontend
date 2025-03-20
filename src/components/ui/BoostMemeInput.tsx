@@ -29,6 +29,7 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     url: string;
     name: string;
   } | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
 
   const vaultWalletKey = import.meta.env.VITE_VAULT_WALLET;
   const teamWalletKey = import.meta.env.VITE_TEAM_WALLET;
@@ -83,6 +84,22 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
     fetchMemeData();
   }, [userMeme]);
 
+  // Fetch user balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!publicKey) return;
+
+      try {
+        const balance = await connection.getBalance(publicKey);
+        setBalance(balance);
+      } catch (error) {
+        console.error("[API] ❌ Error fetching balance:", error);
+      }
+    };
+
+    fetchBalance();
+  }, [publicKey]);
+
   // Display Boost Input only if a meme is selected in rounds 2-6
   if (!userMeme || currentRound < 2 || currentRound > 6) {
     return null;
@@ -94,6 +111,12 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
       return;
     }
 
+    const lamports = parseFloat(boostAmount) * 1e9;
+    if (balance === null || balance < lamports + teamFeeSOL) {
+      alert("Insufficient balance for this transaction.");
+      return;
+    }
+
     try {
       setIsBoosting(true);
 
@@ -101,8 +124,6 @@ const BoostMemeInput: React.FC<BoostMemeInputProps> = ({
       const { blockhash } = await connection.getLatestBlockhash("confirmed");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
-
-      const lamports = parseFloat(boostAmount) * 1e9;
 
       transaction.add(
         SystemProgram.transfer({
